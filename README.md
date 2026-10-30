@@ -1,75 +1,87 @@
-# React + TypeScript + Vite
+# socia-med
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A social media app for sharing creative work: photographs, recordings, rides and essays. Follow people, explore what they are making, message them and keep track of uploads.
 
-Currently, two official plugins are available:
+> **Status:** v0.1.0. The UI is built against in-memory sample data (`src/data/`). The Express API only exposes a health check so far, and the pages are not yet wired to MongoDB.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Home**: a feed of recent uploads from the people you follow.
+- **Explore**: trending tags and suggested people to follow.
+- **Messages**: conversation list and threads, with unread counts.
+- **Notifications**: activity feed with an unread badge.
+- **Uploads**: all uploads, or those of a single user.
+- **Profiles**: bio, interests, follower count and uploads.
+- **Light and dark theme**, with a toggle in the header.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech stack
 
-## Expanding the ESLint configuration
+- **Client:** React 19, TypeScript, Vite, Tailwind CSS 4, Heroicons, Figtree and Fraunces fonts
+- **Server:** Express 5, Mongoose (MongoDB)
+- **Tooling:** ESLint, `concurrently`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Getting started
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisites
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Node.js 24 or later (the server runs `.ts` files directly and uses `--env-file`)
+- A MongoDB database, for example a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Setup
 
+```bash
+npm install
+cp .env.example .env
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+Edit `.env` and set your connection string:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Variable      | Description                          | Default |
+| ------------- | ------------------------------------ | ------- |
+| `MONGODB_URI` | MongoDB connection string (required) | none    |
+| `PORT`        | Port for the API server              | `5189`  |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Run
+
+```bash
+npm run dev
+```
+
+This starts both processes:
+
+- Client: <http://localhost:5188>
+- API: <http://localhost:5189>. Vite proxies `/api` to it, so `GET /api/health` also works through the client port.
+
+The server exits on startup if `MONGODB_URI` is missing or the database is unreachable.
+
+## Scripts
+
+| Script            | What it does                                  |
+| ----------------- | --------------------------------------------- |
+| `npm run dev`     | Run the client and the API together           |
+| `npm run client`  | Run only the Vite dev server                  |
+| `npm run server`  | Run only the Express API                      |
+| `npm run build`   | Type-check and build the client into `dist/`  |
+| `npm run lint`    | Lint the project                              |
+| `npm run preview` | Preview the production build                  |
+
+## API
+
+| Method | Path          | Response                                           |
+| ------ | ------------- | -------------------------------------------------- |
+| GET    | `/api/health` | `{ "status": "ok", "db": "connected" \| "disconnected" }` |
+
+## Project structure
 
 ```
+server/            Express API and MongoDB connection
+src/
+  components/      Header, upload cards, avatars, theme toggle, user menu...
+  data/            Types and sample data (users, uploads, messages)
+  lib/             Hash router, theme handling, formatting helpers
+  pages/           Home, Explore, Messages, Notifications, Uploads, Profile
+```
+
+Routing is hash-based (`#/explore`, `#/messages/:id`, `#/uploads/:userId`, `#/u/:id`), implemented in [src/lib/router.ts](src/lib/router.ts).
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
