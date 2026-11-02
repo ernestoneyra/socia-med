@@ -171,9 +171,9 @@ api.post('/notifications/:id/read', async (req, res) => {
 
 // --- Likes and follows ---------------------------------------------------------------------
 // PUT and DELETE say which state you want, so repeating a request changes nothing. The stored
-// counts only move when a row really was added or removed.
+// counts only move when a row really was added or removed (the unique index decides which).
 
-/** A duplicate-key error means the row already exists, e.g. two requests racing to add it. */
+/** A duplicate-key error means the row already exists. */
 const isDuplicateKey = (err: unknown) => (err as { code?: number } | null)?.code === 11000
 
 api.put('/uploads/:id/like', async (req, res) => {
@@ -183,13 +183,10 @@ api.put('/uploads/:id/like', async (req, res) => {
     return
   }
   try {
-    const result = await LikeModel.updateOne(
-      { userId: ME_ID, uploadId: id },
-      { $setOnInsert: { createdAt: new Date() } },
-      { upsert: true },
-    )
-    if (result.upsertedCount > 0) await UploadModel.updateOne({ _id: id }, { $inc: { likes: 1 } })
+    await LikeModel.create({ userId: ME_ID, uploadId: id })
+    await UploadModel.updateOne({ _id: id }, { $inc: { likes: 1 } })
   } catch (err) {
+    // Already liked (including a second request racing the first): nothing to add.
     if (!isDuplicateKey(err)) throw err
   }
   const upload = await UploadModel.findById(id).select('likes').lean()
@@ -224,17 +221,11 @@ api.put('/users/:id/follow', async (req, res) => {
     return
   }
   try {
-    const result = await FollowModel.updateOne(
-      { followerId: ME_ID, followingId: id },
-      { $setOnInsert: { createdAt: new Date() } },
-      { upsert: true },
-    )
-    if (result.upsertedCount > 0) {
-      await Promise.all([
-        UserModel.updateOne({ _id: id }, { $inc: { followers: 1 } }),
-        UserModel.updateOne({ _id: ME_ID }, { $inc: { following: 1 } }),
-      ])
-    }
+    await FollowModel.create({ followerId: ME_ID, followingId: id })
+    await Promise.all([
+      UserModel.updateOne({ _id: id }, { $inc: { followers: 1 } }),
+      UserModel.updateOne({ _id: ME_ID }, { $inc: { following: 1 } }),
+    ])
   } catch (err) {
     if (!isDuplicateKey(err)) throw err
   }

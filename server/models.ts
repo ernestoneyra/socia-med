@@ -3,6 +3,12 @@ import mongoose, { Schema } from 'mongoose'
 // The sample data uses short string ids ('ernesto', 'u1', 'm1', ...), so they
 // are kept as the document `_id` and references between collections stay valid.
 
+// Timestamps: every document records when it was last changed (`updatedAt`), and users,
+// conversations, likes and follows also when they were created (`createdAt`). Mongoose writes
+// these itself on every insert and update, so the routes never set them by hand. Uploads and
+// notifications keep their own `createdAt` (the time the content was posted) and messages their
+// own `sentAt`; those are real data, not bookkeeping.
+
 const userSchema = new Schema(
   {
     _id: { type: String, required: true },
@@ -20,7 +26,7 @@ const userSchema = new Schema(
     following: { type: Number, default: 0 },
     hue: { type: Number, min: 0, max: 360, default: 0 },
   },
-  { versionKey: false },
+  { versionKey: false, timestamps: true },
 )
 
 const uploadSchema = new Schema(
@@ -37,7 +43,8 @@ const uploadSchema = new Schema(
     seed: { type: Number, required: true },
     duration: { type: String },
   },
-  { versionKey: false },
+  // `createdAt` is the content's own time (when it was posted), so only `updatedAt` is automatic.
+  { versionKey: false, timestamps: { createdAt: false, updatedAt: true } },
 )
 
 const messageSchema = new Schema(
@@ -57,7 +64,7 @@ const conversationSchema = new Schema(
     unread: { type: Number, default: 0 },
     messages: { type: [messageSchema], default: [] },
   },
-  { versionKey: false },
+  { versionKey: false, timestamps: true },
 )
 
 const notificationSchema = new Schema(
@@ -70,7 +77,8 @@ const notificationSchema = new Schema(
     createdAt: { type: Date, required: true, index: true },
     read: { type: Boolean, default: false },
   },
-  { versionKey: false },
+  // `createdAt` is the content's own time (when it was posted), so only `updatedAt` is automatic.
+  { versionKey: false, timestamps: { createdAt: false, updatedAt: true } },
 )
 
 // Likes and follows are one document per pair, so a person can only do each once.
@@ -80,9 +88,8 @@ const likeSchema = new Schema(
   {
     userId: { type: String, ref: 'User', required: true },
     uploadId: { type: String, ref: 'Upload', required: true, index: true },
-    createdAt: { type: Date, default: Date.now },
   },
-  { versionKey: false },
+  { versionKey: false, timestamps: true },
 )
 likeSchema.index({ userId: 1, uploadId: 1 }, { unique: true })
 
@@ -90,9 +97,8 @@ const followSchema = new Schema(
   {
     followerId: { type: String, ref: 'User', required: true },
     followingId: { type: String, ref: 'User', required: true, index: true },
-    createdAt: { type: Date, default: Date.now },
   },
-  { versionKey: false },
+  { versionKey: false, timestamps: true },
 )
 followSchema.index({ followerId: 1, followingId: 1 }, { unique: true })
 

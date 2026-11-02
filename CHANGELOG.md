@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The app now reads from MongoDB through the API: `GET /api/me`, `/api/users`, `/api/uploads` and `/api/inbox`. Edits made directly in the database show up on the next focus or reload.
 - Sending and unsending messages, and marking conversations and notifications as read, are saved to the database.
 - Likes and follows are saved: new `likes` and `follows` collections and `PUT`/`DELETE` endpoints for `/api/uploads/:id/like` and `/api/users/:id/follow`. Counts update on screen straight away and stay in step with the database.
+- Every document records when it was last changed (`updatedAt`), and users, conversations, likes and follows also when they were created (`createdAt`). MongoDB writes these on every insert and update; the API never sets them by hand.
 - Loading and error states (with a "Try again" button) for when the data can't be fetched.
 - Accessibility to WCAG 2.2 level AAA, and the next level down where a rule has no AAA level (see "Accessibility" in the README).
 - Skip link, per-page document titles, and focus moved to the new page heading after navigation.
@@ -23,6 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Relative times ("2 hours ago", "Today", "Yesterday") are measured against the real current time instead of a fixed date in October 2026.
+- `npm run seed` now updates fields in place instead of replacing whole documents, so re-seeding keeps `createdAt`.
 - The sample data moved from `src/data/` to `server/seed-data/` and is only used by `npm run seed`.
 
 - Colour tokens re-tuned: all text is at least 7:1 against its background and control borders at least 3:1, in both themes. The accent colour is darker in the light theme. A new `--edge` token is used for control borders; `--line` is for decorative dividers only.

@@ -15,22 +15,17 @@ export const count = (n: number): string => n.toLocaleString('en-US')
 export const plural = (n: number, singular: string, pluralForm = `${singular}s`): string =>
   `${count(n)} ${n === 1 ? singular : pluralForm}`
 
-/** The mock data is pinned around late Oct 2026, so day labels are relative to that. */
-const MOCK_NOW = new Date('2026-10-30T12:00:00')
-
-export function dayLabel(iso: string): string {
+export function dayLabel(iso: string, now: Date = new Date()): string {
   const d = new Date(iso)
-  const days = Math.floor(
-    (new Date(MOCK_NOW.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000,
-  )
+  const days = Math.round((new Date(now.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86_400_000)
   if (days <= 0) return 'Today'
   if (days === 1) return 'Yesterday'
   return shortDate.format(d)
 }
 
-/** Relative time in words, like "2 hours ago" or "3 days ago", pinned to the mock clock. */
-export function ago(iso: string): string {
-  const mins = Math.max(1, Math.round((MOCK_NOW.getTime() - new Date(iso).getTime()) / 60_000))
+/** Relative time in words, like "2 hours ago" or "3 days ago". */
+export function ago(iso: string, now: Date = new Date()): string {
+  const mins = Math.max(1, Math.round((now.getTime() - new Date(iso).getTime()) / 60_000))
   if (mins < 60) return `${plural(mins, 'minute')} ago`
   if (mins < 60 * 24) return `${plural(Math.round(mins / 60), 'hour')} ago`
   const days = Math.round(mins / (60 * 24))

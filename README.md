@@ -115,6 +115,8 @@ The server exits on startup if `MONGODB_URI` is missing or the database is unrea
 | PUT    | `/api/users/:id/follow`                   | Follow someone. Returns `{ following, followers }`               |
 | DELETE | `/api/users/:id/follow`                   | Unfollow                                                         |
 
+Every document also gets `createdAt` and `updatedAt` from Mongoose; they are bookkeeping and are not sent to the client. Uploads and notifications keep their own `createdAt` (when the content was posted), and messages their `sentAt`. Times shown in the app ("4 days ago", "Today") come from those stored values and are measured against the current time.
+
 Responses are never cached. Likes and follows are saved in the `likes` and `follows` collections (one document per pair). Repeating a PUT or DELETE changes nothing, and the stored `likes`, `followers` and `following` counts only move when a row is really added or removed.
 
 `npm run seed` upserts every sample document by id, so running it again **overwrites** edits you made to those documents in MongoDB. It also empties `likes` and `follows`, because it resets the counts they are kept in step with.

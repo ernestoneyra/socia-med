@@ -35,14 +35,15 @@ async function seed() {
 
   const userResult = await UserModel.bulkWrite(
     users.map(({ id, ...u }) => ({
-      replaceOne: {
+      updateOne: {
         filter: { _id: id },
-        replacement: {
-          _id: id,
-          ...u,
-          username: toUsername(u.name),
-          passwordHash: hashPassword(DEFAULT_PASSWORD),
-          joined: new Date(u.joined),
+        update: {
+          $set: {
+            ...u,
+            username: toUsername(u.name),
+            passwordHash: hashPassword(DEFAULT_PASSWORD),
+            joined: new Date(u.joined),
+          },
         },
         upsert: true,
       },
@@ -51,9 +52,9 @@ async function seed() {
 
   const uploadResult = await UploadModel.bulkWrite(
     uploads.map(({ id, ...u }) => ({
-      replaceOne: {
+      updateOne: {
         filter: { _id: id },
-        replacement: { _id: id, ...u, createdAt: new Date(u.createdAt) },
+        update: { $set: { ...u, createdAt: new Date(u.createdAt) } },
         upsert: true,
       },
     })),
@@ -80,9 +81,9 @@ async function seed() {
 
   const notificationResult = await NotificationModel.bulkWrite(
     notifications.map(({ id, ...n }) => ({
-      replaceOne: {
+      updateOne: {
         filter: { _id: id },
-        replacement: { _id: id, ...n, createdAt: new Date(n.createdAt) },
+        update: { $set: { ...n, createdAt: new Date(n.createdAt) } },
         upsert: true,
       },
     })),
