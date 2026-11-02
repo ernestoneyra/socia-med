@@ -1,5 +1,5 @@
-import { ME_ID } from './users.ts'
-import type { Conversation, Notification } from './types.ts'
+import type { Conversation, Notification } from '../../src/data/types.ts'
+import { ME_ID } from '../config.ts'
 
 const me = ME_ID
 

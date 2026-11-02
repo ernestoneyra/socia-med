@@ -1,11 +1,12 @@
 import { useEffect, useId, useRef, useState, type FocusEvent } from 'react'
 import { ArrowUpTrayIcon, UserCircleIcon } from '@heroicons/react/24/outline'
-import { me } from '../data/users.ts'
+import { useData } from '../data/store.ts'
 import { count } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 import Avatar from './Avatar.tsx'
 
 export default function UserMenu() {
+  const { me } = useData()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)

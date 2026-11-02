@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import Footer from './components/Footer.tsx'
 import Header from './components/Header.tsx'
 import SkipLink from './components/SkipLink.tsx'
-import { findUser } from './data/users.ts'
+import { loadData, retryLoad, startAutoRefresh, useDataState, type Data } from './data/store.ts'
 import { useRoute, type Route } from './lib/router.ts'
 import ExplorePage from './pages/ExplorePage.tsx'
 import HelpPage from './pages/HelpPage.tsx'
@@ -36,7 +36,7 @@ function Page() {
 }
 
 /** Every page gets its own title (WCAG 2.4.2), most specific part first. */
-function pageTitle(route: Route): string {
+function pageTitle(route: Route, { findUser }: Data): string {
   switch (route.name) {
     case 'explore':
       return 'Explore'
@@ -59,17 +59,55 @@ function pageTitle(route: Route): string {
   }
 }
 
+/** Shown until the first read from the server finishes, or if it fails. */
+function LoadState({ state }: { state: Exclude<ReturnType<typeof useDataState>, { status: 'ready' }> }) {
+  if (state.status === 'loading') {
+    return (
+      <p role="status" className="py-16 text-center text-muted">
+        Loading…
+      </p>
+    )
+  }
+  return (
+    <div role="alert" className="mx-auto max-w-prose rounded-2xl border border-edge px-6 py-12 text-center">
+      <h1 tabIndex={-1} className="font-display text-2xl font-semibold">
+        Couldn’t load your data
+      </h1>
+      <p className="mt-3 text-muted">
+        The server or the database didn’t answer. Check that the API is running, then try again.
+      </p>
+      <p className="mt-3 break-words text-sm text-muted">{state.message}</p>
+      <button
+        type="button"
+        onClick={() => void retryLoad()}
+        className="mt-6 inline-flex min-h-11 items-center rounded-full bg-accent px-5 text-sm font-medium text-accent-ink hover:bg-accent-hover"
+      >
+        Try again
+      </button>
+    </div>
+  )
+}
+
 export default function App() {
   const route = useRoute()
+  const state = useDataState()
+  const data = state.status === 'ready' ? state.data : null
   const routeKey = 'id' in route ? `${route.name}/${route.id}` : route.name
   // Choosing another conversation should leave focus on the list you just used.
   const focusKey = route.name === 'messages' ? 'messages' : routeKey
-  const title = pageTitle(route)
+  const title = data ? pageTitle(route, data) : state.status === 'loading' ? 'Loading' : 'Error'
   const lastFocusKey = useRef<string | null>(null)
 
   useEffect(() => {
     document.title = `${title} · ${SITE}`
   }, [title])
+
+  // Read from the database on start, and again whenever the tab is focused, so changes made
+  // elsewhere (for example directly in MongoDB) show up without reloading.
+  useEffect(() => {
+    void loadData()
+    return startAutoRefresh()
+  }, [])
 
   // Hash navigation doesn't reset scroll the way a page load does.
   useEffect(() => {
@@ -90,9 +128,9 @@ export default function App() {
   return (
     <>
       <SkipLink />
-      <Header />
+      {data && <Header />}
       <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-        <Page />
+        {state.status === 'ready' ? <Page /> : <LoadState state={state} />}
       </main>
       <Footer />
     </>

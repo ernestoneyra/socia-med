@@ -1,8 +1,7 @@
-import type { User } from './types.ts'
+import type { User } from '../../src/data/types.ts'
 
-export const ME_ID = 'ernesto'
-
-export const users: User[] = [
+// Who follows whom lives in the Follow collection, not on the user.
+export const users: Omit<User, 'followedByMe'>[] = [
   {
     id: 'ernesto',
     name: 'Ernesto Neyra',
@@ -76,16 +75,3 @@ export const users: User[] = [
     hue: 320,
   },
 ]
-
-export const me = users[0]
-export const otherUsers = users.slice(1)
-
-export function findUser(id: string): User | undefined {
-  return users.find((u) => u.id === id)
-}
-
-export function getUser(id: string): User {
-  const user = findUser(id)
-  if (!user) throw new Error(`Unknown user: ${id}`)
-  return user
-}

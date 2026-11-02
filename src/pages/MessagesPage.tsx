@@ -4,11 +4,12 @@ import Avatar from '../components/Avatar.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import Status from '../components/Status.tsx'
 import { markConversationRead, sendMessage, unsendMessage, useInbox } from '../data/inbox.ts'
-import { ME_ID, getUser } from '../data/users.ts'
+import { useData } from '../data/store.ts'
 import { ago, dayLabel, formatTime } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 
 export default function MessagesPage({ activeId: requestedId }: { activeId?: string }) {
+  const { meId, getUser } = useData()
   const { conversations } = useInbox()
   // One draft per conversation, so text typed for one person is never sent to another.
   const [drafts, setDrafts] = useState<Record<string, string>>({})
@@ -18,7 +19,7 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
   const inputRef = useRef<HTMLInputElement>(null)
 
   // On wide screens something is always open; on phones no id means "show the list".
-  const activeId = requestedId ?? conversations[0].userId
+  const activeId = requestedId ?? conversations[0]?.userId ?? ''
   const active = conversations.find((c) => c.userId === activeId)
   const other = active ? getUser(active.userId) : undefined
   const draft = drafts[activeId] ?? ''
@@ -68,6 +69,7 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
         {/* Conversation list */}
         <div className={`min-h-0 overflow-y-auto border-line md:block md:border-r ${requestedId ? 'hidden' : 'block'}`}>
           <h2 className="sr-only">Conversations</h2>
+          {conversations.length === 0 && <p className="px-4 py-6 text-muted">No conversations yet.</p>}
           <ul>
             {conversations.map((c) => {
               const user = getUser(c.userId)
@@ -87,14 +89,16 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
                           <span className="sr-only">Conversation with </span>
                           {user.name}
                         </span>
-                        <time dateTime={last.sentAt} className="shrink-0 text-xs text-muted">
-                          {ago(last.sentAt)}
-                        </time>
+                        {last && (
+                          <time dateTime={last.sentAt} className="shrink-0 text-xs text-muted">
+                            {ago(last.sentAt)}
+                          </time>
+                        )}
                       </span>
                       {/* A one-line preview; the whole message is in the thread. */}
                       <span className={`mt-0.5 block truncate text-sm ${c.unread ? 'text-ink' : 'text-muted'}`}>
-                        {last.from === ME_ID && 'You: '}
-                        {last.text}
+                        {last?.from === meId && 'You: '}
+                        {last?.text}
                       </span>
                     </span>
                     {c.unread > 0 && (
@@ -151,7 +155,7 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
               className="flex-1 space-y-2 overflow-y-auto px-4 py-4"
             >
               {active.messages.map((m, i) => {
-                const mine = m.from === ME_ID
+                const mine = m.from === meId
                 const prev = active.messages[i - 1]
                 const newDay = !prev || dayLabel(prev.sentAt) !== dayLabel(m.sentAt)
                 return (

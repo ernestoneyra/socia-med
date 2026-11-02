@@ -4,12 +4,12 @@ import KindFilter, { type KindFilterValue } from '../components/KindFilter.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import Status from '../components/Status.tsx'
 import UploadCard from '../components/UploadCard.tsx'
-import { uploads } from '../data/uploads.ts'
-import { findUser } from '../data/users.ts'
+import { useData } from '../data/store.ts'
 import { plural } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 
 export default function UploadsPage({ userId }: { userId?: string }) {
+  const { uploads, findUser } = useData()
   const [kind, setKind] = useState<KindFilterValue>('all')
   const owner = userId ? findUser(userId) : undefined
 

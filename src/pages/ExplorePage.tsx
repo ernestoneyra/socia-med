@@ -1,24 +1,27 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import Avatar from '../components/Avatar.tsx'
 import FollowButton from '../components/FollowButton.tsx'
 import GlossaryText from '../components/GlossaryText.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import Status from '../components/Status.tsx'
-import { uploads } from '../data/uploads.ts'
-import { otherUsers } from '../data/users.ts'
+import { useData } from '../data/store.ts'
 import { count, plural } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
-
-const allTags = Object.entries(
-  uploads
-    .flatMap((u) => u.tags)
-    .reduce<Record<string, number>>((acc, tag) => ({ ...acc, [tag]: (acc[tag] ?? 0) + 1 }), {}),
-).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
 
 const SEARCH_LABEL = 'Search people, interests and tags'
 
 export default function ExplorePage() {
+  const { uploads, otherUsers } = useData()
+  const allTags = useMemo(
+    () =>
+      Object.entries(
+        uploads
+          .flatMap((u) => u.tags)
+          .reduce<Record<string, number>>((acc, tag) => ({ ...acc, [tag]: (acc[tag] ?? 0) + 1 }), {}),
+      ).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])),
+    [uploads],
+  )
   const [query, setQuery] = useState('')
   const q = query.trim().toLowerCase().replace(/^[#@]/, '')
   const searching = q.length > 0
@@ -131,7 +134,7 @@ export default function ExplorePage() {
                 <span className="text-sm text-muted">
                   <span className="font-semibold text-ink">{count(user.followers)}</span> followers
                 </span>
-                <FollowButton name={user.name} />
+                <FollowButton user={user} />
               </div>
             </li>
           ))}

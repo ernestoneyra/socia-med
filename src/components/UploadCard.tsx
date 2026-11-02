@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   ChatBubbleOvalLeftIcon,
   DocumentTextIcon,
@@ -9,7 +8,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid'
 import type { Upload, UploadKind } from '../data/types.ts'
-import { getUser } from '../data/users.ts'
+import { setLiked } from '../data/social.ts'
+import { useData } from '../data/store.ts'
 import { ago, count, isoDuration, spokenDuration } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 import Artwork from './Artwork.tsx'
@@ -24,8 +24,8 @@ const kindMeta: Record<UploadKind, { label: string; Icon: typeof PhotoIcon }> = 
 }
 
 export default function UploadCard({ upload }: { upload: Upload }) {
+  const { getUser } = useData()
   const author = getUser(upload.userId)
-  const [liked, setLiked] = useState(false)
   const { label, Icon } = kindMeta[upload.kind]
 
   return (
@@ -85,17 +85,17 @@ export default function UploadCard({ upload }: { upload: Upload }) {
           <div className="flex items-center gap-1 text-sm text-muted">
             <button
               type="button"
-              onClick={() => setLiked((v) => !v)}
-              aria-pressed={liked}
+              onClick={() => setLiked(upload.id, !upload.likedByMe)}
+              aria-pressed={upload.likedByMe}
               className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-3 hover:bg-surface-2 hover:text-ink"
             >
-              {liked ? (
+              {upload.likedByMe ? (
                 <HeartSolid className="size-5 text-accent" aria-hidden="true" />
               ) : (
                 <HeartOutline className="size-5" aria-hidden="true" />
               )}
               <span className="sr-only">Like, </span>
-              <span className="tabular-nums">{count(upload.likes + (liked ? 1 : 0))}</span>
+              <span className="tabular-nums">{count(upload.likes)}</span>
             </button>
             <span className="inline-flex min-h-11 items-center gap-1 px-3">
               <ChatBubbleOvalLeftIcon className="size-5" aria-hidden="true" />

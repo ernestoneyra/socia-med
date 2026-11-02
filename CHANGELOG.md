@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- The app now reads from MongoDB through the API: `GET /api/me`, `/api/users`, `/api/uploads` and `/api/inbox`. Edits made directly in the database show up on the next focus or reload.
+- Sending and unsending messages, and marking conversations and notifications as read, are saved to the database.
+- Likes and follows are saved: new `likes` and `follows` collections and `PUT`/`DELETE` endpoints for `/api/uploads/:id/like` and `/api/users/:id/follow`. Counts update on screen straight away and stay in step with the database.
+- Loading and error states (with a "Try again" button) for when the data can't be fetched.
 - Accessibility to WCAG 2.2 level AAA, and the next level down where a rule has no AAA level (see "Accessibility" in the README).
 - Skip link, per-page document titles, and focus moved to the new page heading after navigation.
 - Help and accessibility page (`#/help`) with an accessibility statement, keyboard help and a glossary, linked from a footer on every page.
@@ -18,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Support for `prefers-reduced-motion`, `prefers-contrast: more` and forced colours (Windows high contrast).
 
 ### Changed
+
+- The sample data moved from `src/data/` to `server/seed-data/` and is only used by `npm run seed`.
 
 - Colour tokens re-tuned: all text is at least 7:1 against its background and control borders at least 3:1, in both themes. The accent colour is darker in the light theme. A new `--edge` token is used for control borders; `--line` is for decorative dividers only.
 - Visible focus is now a 3px outline with a gap, and nothing hides under the sticky header.

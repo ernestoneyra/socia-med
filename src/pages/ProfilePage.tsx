@@ -6,12 +6,12 @@ import FollowButton from '../components/FollowButton.tsx'
 import GlossaryText from '../components/GlossaryText.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import UploadCard from '../components/UploadCard.tsx'
-import { getUploadsBy } from '../data/uploads.ts'
-import { ME_ID, findUser } from '../data/users.ts'
+import { useData } from '../data/store.ts'
 import { count, formatMonthYear } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 
 export default function ProfilePage({ userId }: { userId: string }) {
+  const { meId, findUser, getUploadsBy } = useData()
   const user = findUser(userId)
 
   if (!user) {
@@ -28,7 +28,7 @@ export default function ProfilePage({ userId }: { userId: string }) {
     )
   }
 
-  const own = user.id === ME_ID
+  const own = user.id === meId
   const theirUploads = getUploadsBy(user.id)
   const stats = [
     { label: 'Uploads', value: count(theirUploads.length) },
@@ -61,7 +61,7 @@ export default function ProfilePage({ userId }: { userId: string }) {
                   <EnvelopeIcon className="size-4" aria-hidden="true" />
                   Message<span className="sr-only"> {user.name}</span>
                 </a>
-                <FollowButton name={user.name} />
+                <FollowButton user={user} />
               </div>
             )}
           </div>

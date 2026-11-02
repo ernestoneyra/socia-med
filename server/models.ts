@@ -73,7 +73,32 @@ const notificationSchema = new Schema(
   { versionKey: false },
 )
 
+// Likes and follows are one document per pair, so a person can only do each once.
+// `Upload.likes`, `User.followers` and `User.following` stay as stored counts (the sample
+// data starts with counts far above the handful of rows here); the routes keep them in step.
+const likeSchema = new Schema(
+  {
+    userId: { type: String, ref: 'User', required: true },
+    uploadId: { type: String, ref: 'Upload', required: true, index: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false },
+)
+likeSchema.index({ userId: 1, uploadId: 1 }, { unique: true })
+
+const followSchema = new Schema(
+  {
+    followerId: { type: String, ref: 'User', required: true },
+    followingId: { type: String, ref: 'User', required: true, index: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { versionKey: false },
+)
+followSchema.index({ followerId: 1, followingId: 1 }, { unique: true })
+
 export const UserModel = mongoose.model('User', userSchema)
 export const UploadModel = mongoose.model('Upload', uploadSchema)
 export const ConversationModel = mongoose.model('Conversation', conversationSchema)
 export const NotificationModel = mongoose.model('Notification', notificationSchema)
+export const LikeModel = mongoose.model('Like', likeSchema)
+export const FollowModel = mongoose.model('Follow', followSchema)

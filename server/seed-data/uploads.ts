@@ -1,7 +1,8 @@
-import type { Upload } from './types.ts'
+import type { Upload } from '../../src/data/types.ts'
 
 // Newest first.
-export const uploads: Upload[] = [
+// Who liked what lives in the Like collection, not on the upload.
+export const uploads: Omit<Upload, 'likedByMe'>[] = [
   {
     id: 'u1',
     userId: 'maya',
@@ -147,11 +148,3 @@ export const uploads: Upload[] = [
     seed: 112,
   },
 ]
-
-export function getUploadsBy(userId: string): Upload[] {
-  return uploads.filter((u) => u.userId === userId)
-}
-
-export function getUpload(id: string): Upload | undefined {
-  return uploads.find((u) => u.id === id)
-}

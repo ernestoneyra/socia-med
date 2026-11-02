@@ -11,8 +11,7 @@ import PageHeading from '../components/PageHeading.tsx'
 import Status from '../components/Status.tsx'
 import { markAllNotificationsRead, markNotificationRead, unreadNotificationCount, useInbox } from '../data/inbox.ts'
 import type { Notification, NotificationType } from '../data/types.ts'
-import { getUpload } from '../data/uploads.ts'
-import { getUser } from '../data/users.ts'
+import { useData, type Data } from '../data/store.ts'
 import { ago } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 
@@ -24,7 +23,7 @@ const meta: Record<NotificationType, { Icon: ComponentType<SVGProps<SVGSVGElemen
   upload: { Icon: ArrowUpTrayIcon, verb: 'shared a new upload' },
 }
 
-function target(n: Notification): string {
+function target(n: Notification, { getUpload }: Data): string {
   if (n.type === 'follow') return paths.profile(n.actorId)
   if (n.type === 'message') return paths.messages(n.actorId)
   const upload = n.uploadId ? getUpload(n.uploadId) : undefined
@@ -32,7 +31,7 @@ function target(n: Notification): string {
 }
 
 /** Where the link goes, spoken after the notification text (WCAG 2.4.9 Link Purpose, link only). */
-function destination(n: Notification, actorName: string): string {
+function destination(n: Notification, actorName: string, { getUpload, getUser }: Data): string {
   if (n.type === 'follow') return `Opens the profile of ${actorName}.`
   if (n.type === 'message') return `Opens your conversation with ${actorName}.`
   const upload = n.uploadId ? getUpload(n.uploadId) : undefined
@@ -40,6 +39,8 @@ function destination(n: Notification, actorName: string): string {
 }
 
 export default function NotificationsPage() {
+  const data = useData()
+  const { getUpload, getUser } = data
   const { notifications } = useInbox()
   const unread = unreadNotificationCount(notifications)
   const [announcement, setAnnouncement] = useState('')
@@ -83,7 +84,7 @@ export default function NotificationsPage() {
           return (
             <li key={n.id}>
               <a
-                href={target(n)}
+                href={target(n, data)}
                 onClick={() => markNotificationRead(n.id)}
                 className={`flex items-start gap-4 px-4 py-4 transition-colors duration-500 hover:bg-surface-2 focus-visible:-outline-offset-4 sm:px-5 ${n.read ? '' : 'bg-accent-soft/50'}`}
               >
@@ -102,7 +103,7 @@ export default function NotificationsPage() {
                     <time dateTime={n.createdAt}>{ago(n.createdAt)}</time>
                     {!n.read && <span className="ml-2 font-semibold text-accent">New</span>}
                   </span>
-                  <span className="sr-only">. {destination(n, actor.name)}</span>
+                  <span className="sr-only">. {destination(n, actor.name, data)}</span>
                 </span>
               </a>
             </li>

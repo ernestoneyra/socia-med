@@ -10,6 +10,8 @@ export interface User {
   following: number
   /** 0-360, drives the generated avatar and banner colours. */
   hue: number
+  /** Whether the signed-in user follows this person. Always false for themselves. */
+  followedByMe: boolean
 }
 
 export type UploadKind = 'photo' | 'audio' | 'video' | 'writing'
@@ -28,6 +30,8 @@ export interface Upload {
   seed: number
   /** Audio/video length, e.g. "3:42". */
   duration?: string
+  /** Whether the signed-in user has liked this upload. `likes` already includes their like. */
+  likedByMe: boolean
 }
 
 export interface Message {

@@ -2,7 +2,7 @@
 
 A social media app for sharing creative work: photographs, recordings, rides and essays. Follow people, explore what they are making, message them and keep track of uploads.
 
-> **Status:** v0.1.0. The UI is built against in-memory sample data (`src/data/`). The Express API only exposes a health check so far, and the pages are not yet wired to MongoDB.
+> **Status:** v0.1.0. The app reads and writes MongoDB through the Express API. Run `npm run seed` once to fill an empty database with sample data; after that, changes made directly in MongoDB show up in the app the next time the tab is focused or reloaded.
 
 ## Features
 
@@ -98,17 +98,35 @@ The server exits on startup if `MONGODB_URI` is missing or the database is unrea
 
 ## API
 
-| Method | Path          | Response                                           |
-| ------ | ------------- | -------------------------------------------------- |
-| GET    | `/api/health` | `{ "status": "ok", "db": "connected" \| "disconnected" }` |
+| Method | Path                                      | Purpose                                                          |
+| ------ | ----------------------------------------- | ---------------------------------------------------------------- |
+| GET    | `/api/health`                             | `{ "status": "ok", "db": "connected" \| "disconnected" }`         |
+| GET    | `/api/me`                                 | The signed-in user's id (no login yet, so always the seed user)  |
+| GET    | `/api/users`                              | All users                                                        |
+| GET    | `/api/uploads`                            | All uploads, newest first                                        |
+| GET    | `/api/inbox`                              | `{ conversations, notifications }`                               |
+| POST   | `/api/conversations/:userId/messages`     | Send a message: body `{ id, text }`                              |
+| DELETE | `/api/conversations/:userId/messages/:id` | Unsend one of your own messages                                  |
+| POST   | `/api/conversations/:userId/read`         | Mark a conversation, and its message notifications, as read      |
+| POST   | `/api/notifications/:id/read`             | Mark one notification as read                                    |
+| POST   | `/api/notifications/read-all`             | Mark every notification as read                                  |
+| PUT    | `/api/uploads/:id/like`                   | Like an upload. Returns `{ liked, likes }`                       |
+| DELETE | `/api/uploads/:id/like`                   | Remove your like                                                 |
+| PUT    | `/api/users/:id/follow`                   | Follow someone. Returns `{ following, followers }`               |
+| DELETE | `/api/users/:id/follow`                   | Unfollow                                                         |
+
+Responses are never cached. Likes and follows are saved in the `likes` and `follows` collections (one document per pair). Repeating a PUT or DELETE changes nothing, and the stored `likes`, `followers` and `following` counts only move when a row is really added or removed.
+
+`npm run seed` upserts every sample document by id, so running it again **overwrites** edits you made to those documents in MongoDB. It also empties `likes` and `follows`, because it resets the counts they are kept in step with.
 
 ## Project structure
 
 ```
-server/            Express API and MongoDB connection
+server/            Express API, Mongoose models and MongoDB connection
+  seed-data/       Sample data used only by `npm run seed`
 src/
   components/      Header, upload cards, avatars, theme toggle, user menu...
-  data/            Types, sample data (users, uploads, messages) and the glossary
+  data/            Types, API client, the data store (loads from the API) and the glossary
   lib/             Hash router, theme handling, formatting helpers
   pages/           Home, Explore, Messages, Notifications, Uploads, Profile, Help
 ```

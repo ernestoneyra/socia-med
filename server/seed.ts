@@ -1,12 +1,19 @@
 import mongoose from 'mongoose'
 import { connectDB } from './db.ts'
-import { ConversationModel, NotificationModel, UploadModel, UserModel } from './models.ts'
-import { conversations, notifications } from '../src/data/messages.ts'
-import { uploads } from '../src/data/uploads.ts'
-import { users } from '../src/data/users.ts'
+import {
+  ConversationModel,
+  FollowModel,
+  LikeModel,
+  NotificationModel,
+  UploadModel,
+  UserModel,
+} from './models.ts'
+import { conversations, notifications } from './seed-data/messages.ts'
+import { uploads } from './seed-data/uploads.ts'
+import { users } from './seed-data/users.ts'
 import { hashPassword } from './password.ts'
 
-// Inserts the sample data from src/data/ into MongoDB. Safe to re-run: every
+// Inserts the sample data from server/seed-data/ into MongoDB. Safe to re-run: every
 // document is upserted by its id, so nothing is duplicated.
 
 // Every seeded user logs in with this password (stored hashed).
@@ -80,6 +87,11 @@ async function seed() {
       },
     })),
   )
+
+  // The sample counts above replace any live ones, so saved likes and follows would no longer
+  // add up to them. Start those from scratch too.
+  const [likesCleared, followsCleared] = await Promise.all([LikeModel.deleteMany({}), FollowModel.deleteMany({})])
+  console.log(`likes: ${likesCleared.deletedCount} removed; follows: ${followsCleared.deletedCount} removed`)
 
   const report = (name: string, r: { upsertedCount: number; modifiedCount: number }) =>
     console.log(`${name}: ${r.upsertedCount} inserted, ${r.modifiedCount} updated`)
