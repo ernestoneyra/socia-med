@@ -2,14 +2,13 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ArrowLeftIcon, PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import Avatar from '../components/Avatar.tsx'
 import PageHeading from '../components/PageHeading.tsx'
-import { conversations as initial } from '../data/messages.ts'
-import type { Conversation } from '../data/types.ts'
+import { markConversationRead, sendMessage, useInbox } from '../data/inbox.ts'
 import { ME_ID, getUser } from '../data/users.ts'
 import { ago, dayLabel, formatTime } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 
 export default function MessagesPage({ activeId: requestedId }: { activeId?: string }) {
-  const [conversations, setConversations] = useState<Conversation[]>(initial)
+  const { conversations } = useInbox()
   const [draft, setDraft] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -24,23 +23,18 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
     if (el) el.scrollTop = el.scrollHeight
   }, [activeId, active?.messages.length])
 
+  // Viewing a thread reads it. On phones the list is shown until a thread is chosen,
+  // so only the wide layout counts the default conversation as seen.
+  useEffect(() => {
+    if (!active) return
+    if (requestedId || window.matchMedia('(min-width: 768px)').matches) markConversationRead(active.userId)
+  }, [active, requestedId])
+
   function send(e: FormEvent) {
     e.preventDefault()
     const text = draft.trim()
     if (!text) return
-    setConversations((list) =>
-      list.map((c) =>
-        c.userId === activeId
-          ? {
-              ...c,
-              messages: [
-                ...c.messages,
-                { id: crypto.randomUUID(), from: ME_ID, text, sentAt: new Date().toISOString() },
-              ],
-            }
-          : c,
-      ),
-    )
+    sendMessage(activeId, text)
     setDraft('')
   }
 

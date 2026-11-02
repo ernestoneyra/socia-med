@@ -1,4 +1,4 @@
-import type { ComponentType, SVGProps } from 'react'
+import { useEffect, useRef, type ComponentType, type SVGProps } from 'react'
 import {
   ArrowUpTrayIcon,
   ChatBubbleOvalLeftIcon,
@@ -8,7 +8,7 @@ import {
 } from '@heroicons/react/24/solid'
 import Avatar from '../components/Avatar.tsx'
 import PageHeading from '../components/PageHeading.tsx'
-import { notifications } from '../data/messages.ts'
+import { markNotificationRead, useInbox } from '../data/inbox.ts'
 import type { Notification, NotificationType } from '../data/types.ts'
 import { getUpload } from '../data/uploads.ts'
 import { getUser } from '../data/users.ts'
@@ -30,7 +30,29 @@ function target(n: Notification): string {
   return upload ? paths.uploads(upload.userId) : paths.home
 }
 
+// Pause before the first tag clears, then clear the rest one at a time.
+const FIRST_DELAY_MS = 1200
+const STEP_MS = 700
+
 export default function NotificationsPage() {
+  const { notifications } = useInbox()
+
+  // Each tag goes away on its own once you've had a moment to see it: clearing one
+  // re-runs this effect for the next unread notification, so they drop off in sequence.
+  const nextUnreadId = notifications.find((n) => !n.read)?.id
+  const started = useRef(false)
+  useEffect(() => {
+    if (!nextUnreadId) return
+    const id = window.setTimeout(
+      () => {
+        started.current = true
+        markNotificationRead(nextUnreadId)
+      },
+      started.current ? STEP_MS : FIRST_DELAY_MS,
+    )
+    return () => window.clearTimeout(id)
+  }, [nextUnreadId])
+
   return (
     <>
       <PageHeading title="Notifications" subtitle="Likes, comments, new followers and fresh uploads." />
@@ -43,7 +65,8 @@ export default function NotificationsPage() {
             <li key={n.id}>
               <a
                 href={target(n)}
-                className={`flex items-start gap-4 px-4 py-4 hover:bg-surface-2 sm:px-5 ${n.read ? '' : 'bg-accent-soft/50'}`}
+                onClick={() => markNotificationRead(n.id)}
+                className={`flex items-start gap-4 px-4 py-4 transition-colors duration-500 hover:bg-surface-2 sm:px-5 ${n.read ? '' : 'bg-accent-soft/50'}`}
               >
                 <span className="relative shrink-0">
                   <Avatar user={actor} />

@@ -63,11 +63,3 @@ export const notifications: Notification[] = [
   { id: 'n6', type: 'like', actorId: 'priya', uploadId: 'u6', createdAt: '2026-10-27T11:12:00', read: true },
   { id: 'n8', type: 'follow', actorId: 'priya', createdAt: '2026-10-25T09:30:00', read: true },
 ]
-
-export function unreadMessageCount(list: Conversation[] = conversations): number {
-  return list.reduce((sum, c) => sum + c.unread, 0)
-}
-
-export function unreadNotificationCount(): number {
-  return notifications.filter((n) => !n.read).length
-}

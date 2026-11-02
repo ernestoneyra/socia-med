@@ -1,21 +1,13 @@
 import { useState } from 'react'
+import KindFilter, { type KindFilterValue } from '../components/KindFilter.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import UploadCard from '../components/UploadCard.tsx'
-import type { UploadKind } from '../data/types.ts'
 import { uploads } from '../data/uploads.ts'
 import { findUser } from '../data/users.ts'
 import { paths } from '../lib/router.ts'
 
-const filters: { value: UploadKind | 'all'; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'photo', label: 'Photos' },
-  { value: 'audio', label: 'Audio' },
-  { value: 'video', label: 'Video' },
-  { value: 'writing', label: 'Writing' },
-]
-
 export default function UploadsPage({ userId }: { userId?: string }) {
-  const [kind, setKind] = useState<UploadKind | 'all'>('all')
+  const [kind, setKind] = useState<KindFilterValue>('all')
   const owner = userId ? findUser(userId) : undefined
 
   const scoped = owner ? uploads.filter((u) => u.userId === owner.id) : uploads
@@ -34,23 +26,7 @@ export default function UploadsPage({ userId }: { userId?: string }) {
         )}
       </PageHeading>
 
-      <div role="group" aria-label="Filter by type" className="mb-6 flex flex-wrap gap-2">
-        {filters.map((f) => (
-          <button
-            key={f.value}
-            type="button"
-            aria-pressed={kind === f.value}
-            onClick={() => setKind(f.value)}
-            className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
-              kind === f.value
-                ? 'border-accent bg-accent text-accent-ink'
-                : 'border-line bg-surface text-muted hover:text-ink'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <KindFilter value={kind} onChange={setKind} />
 
       {visible.length ? (
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
