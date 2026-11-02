@@ -62,18 +62,35 @@ export function markNotificationRead(id: string) {
   })
 }
 
-export function sendMessage(userId: string, text: string) {
+export function markAllNotificationsRead() {
+  if (!state.notifications.some((n) => !n.read)) return
+  set({ ...state, notifications: state.notifications.map((n) => (n.read ? n : { ...n, read: true })) })
+}
+
+/** Returns the new message's id, so the sender can undo it (WCAG 3.3.6: submissions are reversible). */
+export function sendMessage(userId: string, text: string): string {
+  const id = crypto.randomUUID()
   set({
     ...state,
     conversations: state.conversations.map((c) =>
       c.userId === userId
         ? {
             ...c,
-            messages: [
-              ...c.messages,
-              { id: crypto.randomUUID(), from: ME_ID, text, sentAt: new Date().toISOString() },
-            ],
+            messages: [...c.messages, { id, from: ME_ID, text, sentAt: new Date().toISOString() }],
           }
+        : c,
+    ),
+  })
+  return id
+}
+
+/** Takes back a message you just sent. Only your own messages can be removed. */
+export function unsendMessage(userId: string, messageId: string) {
+  set({
+    ...state,
+    conversations: state.conversations.map((c) =>
+      c.userId === userId
+        ? { ...c, messages: c.messages.filter((m) => !(m.id === messageId && m.from === ME_ID)) }
         : c,
     ),
   })

@@ -38,7 +38,7 @@ const nav: NavEntry[] = [
 
 function Logo() {
   return (
-    <a href={paths.home} className="flex items-center gap-2.5" aria-label="socia-med home">
+    <a href={paths.home} className="flex min-h-11 items-center gap-2.5" aria-label="socia-med home">
       <svg viewBox="0 0 32 32" className="size-8 text-accent" aria-hidden="true">
         <circle cx="12" cy="16" r="9" fill="currentColor" />
         <circle cx="21" cy="16" r="9" fill="none" stroke="currentColor" strokeWidth="2.5" />
@@ -59,7 +59,7 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-line bg-paper/90 backdrop-blur">
+    <header className="sticky top-0 z-40 w-full border-b border-line bg-paper">
       <div className="grid grid-cols-[1fr_auto] items-center px-4 sm:px-6 md:grid-cols-[1fr_auto_1fr]">
         <div className="col-start-1 row-start-1 py-3 md:py-0">
           <Logo />
@@ -78,7 +78,6 @@ export default function Header() {
                 key={name}
                 href={href}
                 aria-current={active ? 'page' : undefined}
-                title={label}
                 className={`group relative flex h-12 min-w-12 items-center justify-center gap-3 px-3 text-sm font-medium md:h-16 lg:px-4 ${
                   active ? 'text-ink' : 'text-muted hover:text-ink'
                 }`}
@@ -86,7 +85,7 @@ export default function Header() {
                 <span className="relative">
                   <Current className={`size-6 ${active ? 'text-accent' : ''}`} aria-hidden="true" />
                   {badge ? (
-                    <span className="absolute -right-2 -top-1.5 grid min-w-4 place-items-center rounded-full bg-accent px-1 text-[10px] font-bold leading-4 text-accent-ink">
+                    <span className="fc-border absolute -right-2.5 -top-2 grid min-w-5 place-items-center rounded-full bg-accent px-1 text-xs font-bold text-accent-ink">
                       {badge}
                       <span className="sr-only"> unread</span>
                     </span>
@@ -95,7 +94,7 @@ export default function Header() {
                 <span className="sr-only lg:not-sr-only">{label}</span>
                 <span
                   aria-hidden="true"
-                  className={`absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-accent transition-transform ${
+                  className={`absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-accent transition-transform motion-reduce:transition-none ${
                     active ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-50'
                   }`}
                 />

@@ -10,10 +10,11 @@ import {
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid'
 import type { Upload, UploadKind } from '../data/types.ts'
 import { getUser } from '../data/users.ts'
-import { ago, compact } from '../lib/format.ts'
+import { ago, count, isoDuration, spokenDuration } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 import Artwork from './Artwork.tsx'
 import Avatar from './Avatar.tsx'
+import GlossaryText from './GlossaryText.tsx'
 
 const kindMeta: Record<UploadKind, { label: string; Icon: typeof PhotoIcon }> = {
   photo: { label: 'Photo', Icon: PhotoIcon },
@@ -30,21 +31,37 @@ export default function UploadCard({ upload }: { upload: Upload }) {
   return (
     <article className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
       <div className="relative">
-        <Artwork seed={upload.seed} hue={author.hue} kind={upload.kind} className="aspect-[4/3]" />
-        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
-          <Icon className="size-3.5" aria-hidden="true" />
+        <Artwork
+          seed={upload.seed}
+          hue={author.hue}
+          kind={upload.kind}
+          label={`Generated ${label.toLowerCase()} artwork for “${upload.title}”`}
+          className="aspect-[4/3]"
+        />
+        {/* Near-opaque so the white text stays above 7:1 on any artwork behind it (SC 1.4.6). */}
+        <span className="fc-border absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/90 px-3 py-1 text-xs font-medium text-white">
+          <Icon className="size-4" aria-hidden="true" />
           {label}
-          {upload.duration && <span className="tabular-nums opacity-80">· {upload.duration}</span>}
+          {upload.duration && (
+            <time dateTime={isoDuration(upload.duration)} className="tabular-nums">
+              <span aria-hidden="true">· {upload.duration}</span>
+              <span className="sr-only">, {spokenDuration(upload.duration)} long</span>
+            </time>
+          )}
         </span>
       </div>
 
       <div className="space-y-3 p-4">
         <div>
-          <h3 className="font-display text-lg font-semibold leading-snug">{upload.title}</h3>
-          <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-muted">{upload.caption}</p>
+          <h3 className="font-display text-lg font-semibold">
+            <GlossaryText text={upload.title} />
+          </h3>
+          <p className="mt-1 text-sm leading-relaxed text-muted">
+            <GlossaryText text={upload.caption} />
+          </p>
         </div>
 
-        <ul className="flex flex-wrap gap-1.5">
+        <ul aria-label="Tags" className="flex flex-wrap gap-1.5">
           {upload.tags.map((tag) => (
             <li key={tag} className="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-muted">
               #{tag}
@@ -52,12 +69,16 @@ export default function UploadCard({ upload }: { upload: Upload }) {
           ))}
         </ul>
 
-        <div className="flex items-center justify-between border-t border-line pt-3">
-          <a href={paths.profile(author.id)} className="flex min-w-0 items-center gap-2.5">
+        <p className="text-sm text-muted">
+          Posted <time dateTime={upload.createdAt}>{ago(upload.createdAt)}</time>
+        </p>
+
+        <div className="flex flex-wrap items-center justify-between gap-x-3 border-t border-line pt-3">
+          <a href={paths.profile(author.id)} className="flex min-h-11 min-w-0 items-center gap-2.5">
             <Avatar user={author} size="sm" />
-            <span className="min-w-0 leading-tight">
-              <span className="block truncate text-sm font-medium">{author.name}</span>
-              <span className="block text-xs text-muted">{ago(upload.createdAt)} ago</span>
+            <span className="min-w-0 break-words text-sm font-medium">
+              <span className="sr-only">Profile of </span>
+              {author.name}
             </span>
           </a>
 
@@ -66,19 +87,19 @@ export default function UploadCard({ upload }: { upload: Upload }) {
               type="button"
               onClick={() => setLiked((v) => !v)}
               aria-pressed={liked}
-              aria-label="Like"
-              className="inline-flex items-center gap-1 rounded-full px-2 py-1.5 hover:bg-surface-2 hover:text-ink"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-full px-3 hover:bg-surface-2 hover:text-ink"
             >
               {liked ? (
                 <HeartSolid className="size-5 text-accent" aria-hidden="true" />
               ) : (
                 <HeartOutline className="size-5" aria-hidden="true" />
               )}
-              <span className="tabular-nums">{compact(upload.likes + (liked ? 1 : 0))}</span>
+              <span className="sr-only">Like, </span>
+              <span className="tabular-nums">{count(upload.likes + (liked ? 1 : 0))}</span>
             </button>
-            <span className="inline-flex items-center gap-1 px-2 py-1.5">
+            <span className="inline-flex min-h-11 items-center gap-1 px-3">
               <ChatBubbleOvalLeftIcon className="size-5" aria-hidden="true" />
-              <span className="tabular-nums">{compact(upload.comments)}</span>
+              <span className="tabular-nums">{count(upload.comments)}</span>
               <span className="sr-only">comments</span>
             </span>
           </div>

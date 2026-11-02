@@ -1,11 +1,14 @@
 import { CalendarDaysIcon, EnvelopeIcon, MapPinIcon } from '@heroicons/react/24/outline'
 import Artwork from '../components/Artwork.tsx'
 import Avatar from '../components/Avatar.tsx'
+import Breadcrumbs from '../components/Breadcrumbs.tsx'
 import FollowButton from '../components/FollowButton.tsx'
+import GlossaryText from '../components/GlossaryText.tsx'
+import PageHeading from '../components/PageHeading.tsx'
 import UploadCard from '../components/UploadCard.tsx'
 import { getUploadsBy } from '../data/uploads.ts'
 import { ME_ID, findUser } from '../data/users.ts'
-import { compact, formatMonthYear } from '../lib/format.ts'
+import { count, formatMonthYear } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 
 export default function ProfilePage({ userId }: { userId: string }) {
@@ -13,50 +16,69 @@ export default function ProfilePage({ userId }: { userId: string }) {
 
   if (!user) {
     return (
-      <p className="rounded-2xl border border-dashed border-line px-6 py-16 text-center text-muted">
-        We couldn’t find that profile. <a href={paths.explore} className="text-accent underline">Explore people</a>
-      </p>
+      <>
+        <PageHeading title="Profile not found" />
+        <p className="rounded-2xl border border-dashed border-edge px-6 py-16 text-center text-muted">
+          We couldn’t find that profile.{' '}
+          <a href={paths.explore} className="font-medium text-accent underline underline-offset-4 hover:text-accent-hover">
+            Explore people
+          </a>
+        </p>
+      </>
     )
   }
 
   const own = user.id === ME_ID
   const theirUploads = getUploadsBy(user.id)
   const stats = [
-    { label: 'Uploads', value: theirUploads.length },
-    { label: 'Followers', value: compact(user.followers) },
-    { label: 'Following', value: compact(user.following) },
+    { label: 'Uploads', value: count(theirUploads.length) },
+    { label: 'Followers', value: count(user.followers) },
+    { label: 'Following', value: count(user.following) },
   ]
 
   return (
     <>
+      <Breadcrumbs
+        items={
+          own
+            ? [{ label: 'Home', href: paths.home }, { label: 'Your profile' }]
+            : [{ label: 'Home', href: paths.home }, { label: 'Explore', href: paths.explore }, { label: user.name }]
+        }
+      />
       <div className="overflow-hidden rounded-3xl border border-line bg-surface shadow-card">
+        {/* Decorative banner: no label, so it is hidden from assistive technology. */}
         <Artwork seed={user.hue + 7} hue={user.hue} kind="photo" className="h-40 sm:h-56" />
 
         <div className="px-5 pb-6 sm:px-8">
           <div className="-mt-12 flex flex-wrap items-end justify-between gap-4 sm:-mt-14">
             <Avatar user={user} size="xl" className="ring-4 ring-surface" />
             {!own && (
-              <div className="flex items-center gap-2 pb-1">
+              <div className="flex flex-wrap items-center gap-2 pb-1">
                 <a
                   href={paths.messages(user.id)}
-                  className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-1.5 text-sm font-medium hover:bg-surface-2"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-edge px-5 text-sm font-medium hover:bg-surface-2"
                 >
                   <EnvelopeIcon className="size-4" aria-hidden="true" />
-                  Message
+                  Message<span className="sr-only"> {user.name}</span>
                 </a>
                 <FollowButton name={user.name} />
               </div>
             )}
           </div>
 
-          <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight">{user.name}</h1>
+          <h1 tabIndex={-1} className="mt-4 font-display text-3xl font-semibold tracking-tight">
+            {user.name}
+          </h1>
           <p className="text-muted">@{user.handle}</p>
-          <p className="mt-4 max-w-prose leading-relaxed">{user.bio}</p>
+          <p className="mt-4 max-w-prose leading-relaxed">
+            <GlossaryText text={user.bio} />
+          </p>
 
           <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
             <li className="flex items-center gap-1.5">
               <MapPinIcon className="size-4" aria-hidden="true" />
-              {user.location}
+              <span className="sr-only">Location: </span>
+              <GlossaryText text={user.location} />
             </li>
             <li className="flex items-center gap-1.5">
               <CalendarDaysIcon className="size-4" aria-hidden="true" />
@@ -64,7 +86,7 @@ export default function ProfilePage({ userId }: { userId: string }) {
             </li>
           </ul>
 
-          <ul className="mt-4 flex flex-wrap gap-1.5">
+          <ul aria-label="Interests" className="mt-4 flex flex-wrap gap-1.5">
             {user.interests.map((interest) => (
               <li key={interest} className="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-muted">
                 {interest}
@@ -72,10 +94,10 @@ export default function ProfilePage({ userId }: { userId: string }) {
             ))}
           </ul>
 
-          <dl className="mt-6 flex gap-8 border-t border-line pt-5">
+          <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-3 border-t border-line pt-5">
             {stats.map((s) => (
               <div key={s.label}>
-                <dt className="text-xs uppercase tracking-wider text-muted">{s.label}</dt>
+                <dt className="text-sm text-muted">{s.label}</dt>
                 <dd className="font-display text-2xl font-semibold tabular-nums">{s.value}</dd>
               </div>
             ))}
@@ -91,7 +113,7 @@ export default function ProfilePage({ userId }: { userId: string }) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-line px-6 py-16 text-center text-muted">
+        <p className="rounded-2xl border border-dashed border-edge px-6 py-16 text-center text-muted">
           No uploads yet.
         </p>
       )}

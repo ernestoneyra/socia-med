@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import Breadcrumbs from '../components/Breadcrumbs.tsx'
 import KindFilter, { type KindFilterValue } from '../components/KindFilter.tsx'
 import PageHeading from '../components/PageHeading.tsx'
+import Status from '../components/Status.tsx'
 import UploadCard from '../components/UploadCard.tsx'
 import { uploads } from '../data/uploads.ts'
 import { findUser } from '../data/users.ts'
+import { plural } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 
 export default function UploadsPage({ userId }: { userId?: string }) {
@@ -15,19 +18,33 @@ export default function UploadsPage({ userId }: { userId?: string }) {
 
   return (
     <>
+      {owner && (
+        <Breadcrumbs
+          items={[
+            { label: 'Home', href: paths.home },
+            { label: 'Uploads', href: paths.uploads() },
+            { label: owner.name },
+          ]}
+        />
+      )}
       <PageHeading
         title={owner ? `Uploads by ${owner.name}` : 'Uploads'}
-        subtitle={`${scoped.length} ${scoped.length === 1 ? 'upload' : 'uploads'} in total.`}
+        subtitle={`${plural(scoped.length, 'upload')} in total.`}
       >
         {owner && (
-          <a href={paths.uploads()} className="text-sm font-medium text-accent hover:underline">
+          <a
+            href={paths.uploads()}
+            className="inline-flex min-h-11 items-center text-sm font-medium text-accent underline underline-offset-4 hover:text-accent-hover"
+          >
             Show everyone’s uploads
           </a>
         )}
       </PageHeading>
 
       <KindFilter value={kind} onChange={setKind} />
+      <Status>{plural(visible.length, 'upload')} shown.</Status>
 
+      <h2 className="sr-only">Upload list</h2>
       {visible.length ? (
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((upload) => (
@@ -35,7 +52,7 @@ export default function UploadsPage({ userId }: { userId?: string }) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-line px-6 py-16 text-center text-muted">
+        <p className="rounded-2xl border border-dashed border-edge px-6 py-16 text-center text-muted">
           Nothing here yet.
         </p>
       )}

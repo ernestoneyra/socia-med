@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import Avatar from '../components/Avatar.tsx'
 import FollowButton from '../components/FollowButton.tsx'
+import GlossaryText from '../components/GlossaryText.tsx'
 import PageHeading from '../components/PageHeading.tsx'
+import Status from '../components/Status.tsx'
 import { uploads } from '../data/uploads.ts'
 import { otherUsers } from '../data/users.ts'
-import { compact } from '../lib/format.ts'
+import { count, plural } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 
 const allTags = Object.entries(
@@ -13,6 +15,8 @@ const allTags = Object.entries(
     .flatMap((u) => u.tags)
     .reduce<Record<string, number>>((acc, tag) => ({ ...acc, [tag]: (acc[tag] ?? 0) + 1 }), {}),
 ).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+
+const SEARCH_LABEL = 'Search people, interests and tags'
 
 export default function ExplorePage() {
   const [query, setQuery] = useState('')
@@ -36,8 +40,9 @@ export default function ExplorePage() {
       />
 
       <form role="search" onSubmit={(e) => e.preventDefault()} className="mb-8">
+        {/* The label repeats the placeholder, so the accessible name contains the visible text (SC 2.5.3). */}
         <label htmlFor="explore-search" className="sr-only">
-          Search people and tags
+          {SEARCH_LABEL}
         </label>
         <div className="relative">
           <MagnifyingGlassIcon
@@ -49,35 +54,46 @@ export default function ExplorePage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search people, interests and tags…"
+            placeholder={SEARCH_LABEL}
+            aria-describedby="explore-search-help"
             autoComplete="off"
-            className="w-full rounded-full border border-line bg-surface py-2.5 pl-11 pr-4 text-sm placeholder:text-muted focus-visible:outline-offset-0"
+            className="min-h-11 w-full rounded-full border border-edge bg-surface py-2.5 pl-11 pr-4 text-sm placeholder:text-muted focus-visible:outline-offset-0"
           />
         </div>
+        {/* Context-sensitive help (SC 3.3.5). */}
+        <p id="explore-search-help" className="mt-2 px-4 text-sm text-muted">
+          Type a name, an interest or a tag. The lists below update as you type.
+        </p>
       </form>
 
+      <Status>
+        {searching
+          ? `${plural(people.length, 'person', 'people')} and ${plural(trending.length, 'tag')} match “${query.trim()}”.`
+          : ''}
+      </Status>
+
       <section aria-labelledby="trending" className="mb-10">
-        <h2 id="trending" className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">
+        <h2 id="trending" className="mb-3 text-lg font-semibold">
           {searching ? 'Matching tags' : 'Trending tags'}
         </h2>
-        {trending.length === 0 && <p className="text-sm text-muted">No tags match “{query.trim()}”.</p>}
+        {trending.length === 0 && <p className="text-muted">No tags match “{query.trim()}”.</p>}
         <ul className="flex flex-wrap gap-2">
-          {trending.map(([tag, count]) => (
+          {trending.map(([tag, uses]) => (
             <li
               key={tag}
-              className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm"
+              className="rounded-full border border-edge bg-surface px-4 py-1.5 text-sm"
             >
-              #{tag} <span className="ml-1 tabular-nums text-muted">{count}</span>
+              #{tag} <span className="ml-1 text-muted">{plural(uses, 'upload')}</span>
             </li>
           ))}
         </ul>
       </section>
 
       <section aria-labelledby="people">
-        <h2 id="people" className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted">
+        <h2 id="people" className="mb-3 text-lg font-semibold">
           {searching ? 'Matching people' : 'People to follow'}
         </h2>
-        {people.length === 0 && <p className="text-sm text-muted">No people match “{query.trim()}”.</p>}
+        {people.length === 0 && <p className="text-muted">No people match “{query.trim()}”.</p>}
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {people.map((user) => (
             <li
@@ -86,26 +102,34 @@ export default function ExplorePage() {
             >
               <div className="flex items-center gap-3">
                 <Avatar user={user} size="lg" />
-                <div className="min-w-0 leading-tight">
-                  <a href={paths.profile(user.id)} className="block truncate font-display text-lg font-semibold hover:underline">
-                    {user.name}
-                  </a>
-                  <p className="truncate text-sm text-muted">
+                <div className="min-w-0 break-words">
+                  <h3 className="font-display text-lg font-semibold">
+                    <a
+                      href={paths.profile(user.id)}
+                      className="inline-flex min-h-11 items-center underline-offset-4 hover:underline"
+                    >
+                      <span className="sr-only">Profile of </span>
+                      {user.name}
+                    </a>
+                  </h3>
+                  <p className="text-sm text-muted">
                     @{user.handle} · {user.location}
                   </p>
                 </div>
               </div>
-              <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-muted">{user.bio}</p>
-              <ul className="mt-4 flex flex-wrap gap-1.5">
+              <p className="mt-4 text-sm leading-relaxed text-muted">
+                <GlossaryText text={user.bio} />
+              </p>
+              <ul aria-label="Interests" className="mt-4 flex flex-wrap gap-1.5">
                 {user.interests.map((interest) => (
                   <li key={interest} className="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-muted">
                     {interest}
                   </li>
                 ))}
               </ul>
-              <div className="mt-auto flex items-center justify-between pt-5">
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-5">
                 <span className="text-sm text-muted">
-                  <span className="font-semibold text-ink">{compact(user.followers)}</span> followers
+                  <span className="font-semibold text-ink">{count(user.followers)}</span> followers
                 </span>
                 <FollowButton name={user.name} />
               </div>

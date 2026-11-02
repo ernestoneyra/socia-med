@@ -1,12 +1,18 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import Footer from './components/Footer.tsx'
 import Header from './components/Header.tsx'
-import { useRoute } from './lib/router.ts'
+import SkipLink from './components/SkipLink.tsx'
+import { findUser } from './data/users.ts'
+import { useRoute, type Route } from './lib/router.ts'
 import ExplorePage from './pages/ExplorePage.tsx'
+import HelpPage from './pages/HelpPage.tsx'
 import HomePage from './pages/HomePage.tsx'
 import MessagesPage from './pages/MessagesPage.tsx'
 import NotificationsPage from './pages/NotificationsPage.tsx'
 import ProfilePage from './pages/ProfilePage.tsx'
 import UploadsPage from './pages/UploadsPage.tsx'
+
+const SITE = 'socia-med'
 
 function Page() {
   const route = useRoute()
@@ -22,26 +28,73 @@ function Page() {
       return <UploadsPage key={route.id ?? 'all'} userId={route.id} />
     case 'profile':
       return <ProfilePage userId={route.id} />
+    case 'help':
+      return <HelpPage />
     default:
       return <HomePage />
+  }
+}
+
+/** Every page gets its own title (WCAG 2.4.2), most specific part first. */
+function pageTitle(route: Route): string {
+  switch (route.name) {
+    case 'explore':
+      return 'Explore'
+    case 'messages': {
+      const other = route.id ? findUser(route.id) : undefined
+      return other ? `Messages with ${other.name}` : 'Messages'
+    }
+    case 'notifications':
+      return 'Notifications'
+    case 'uploads': {
+      const owner = route.id ? findUser(route.id) : undefined
+      return owner ? `Uploads by ${owner.name}` : 'Uploads'
+    }
+    case 'profile':
+      return findUser(route.id)?.name ?? 'Profile not found'
+    case 'help':
+      return 'Help and accessibility'
+    default:
+      return 'Home'
   }
 }
 
 export default function App() {
   const route = useRoute()
   const routeKey = 'id' in route ? `${route.name}/${route.id}` : route.name
+  // Choosing another conversation should leave focus on the list you just used.
+  const focusKey = route.name === 'messages' ? 'messages' : routeKey
+  const title = pageTitle(route)
+  const lastFocusKey = useRef<string | null>(null)
+
+  useEffect(() => {
+    document.title = `${title} · ${SITE}`
+  }, [title])
 
   // Hash navigation doesn't reset scroll the way a page load does.
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [routeKey])
 
+  // A full page load starts at the top and announces the title itself. After in-app navigation
+  // nothing would tell a screen reader the page changed, so move focus to the new page's heading
+  // (WCAG 2.4.3, 4.1.3). The ref keeps this off the very first render, including StrictMode's repeat.
+  useEffect(() => {
+    const previous = lastFocusKey.current
+    lastFocusKey.current = focusKey
+    if (previous === null || previous === focusKey) return
+    const target = document.querySelector<HTMLElement>('main h1') ?? document.getElementById('main-content')
+    target?.focus({ preventScroll: true })
+  }, [focusKey])
+
   return (
     <>
+      <SkipLink />
       <Header />
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         <Page />
       </main>
+      <Footer />
     </>
   )
 }

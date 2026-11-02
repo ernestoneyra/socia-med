@@ -1,7 +1,7 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type FocusEvent } from 'react'
 import { ArrowUpTrayIcon, UserCircleIcon } from '@heroicons/react/24/outline'
 import { me } from '../data/users.ts'
-import { compact } from '../lib/format.ts'
+import { count } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 import Avatar from './Avatar.tsx'
 
@@ -31,19 +31,25 @@ export default function UserMenu() {
     }
   }, [open])
 
-  const linkClass =
-    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-surface-2'
+  // Tabbing out of the menu closes it, so it never lingers over the page after focus has moved on.
+  // relatedTarget is null when focus leaves the window or lands on nothing; we leave the menu open then.
+  function onBlur(e: FocusEvent<HTMLDivElement>) {
+    const next = e.relatedTarget
+    if (next instanceof Node && !e.currentTarget.contains(next)) setOpen(false)
+  }
+
+  const linkClass = 'flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-surface-2'
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} onBlur={onBlur} className="relative">
       <button
         ref={buttonRef}
         type="button"
         aria-expanded={open}
-        aria-controls={panelId}
+        aria-controls={open ? panelId : undefined}
         aria-label="Account menu"
         onClick={() => setOpen((v) => !v)}
-        className={`rounded-full p-0.5 ring-2 transition-shadow ${open ? 'ring-accent' : 'ring-transparent hover:ring-line'}`}
+        className={`rounded-full p-0.5 ring-2 transition-shadow ${open ? 'ring-accent' : 'ring-transparent hover:ring-edge'}`}
       >
         <Avatar user={me} size="md" />
       </button>
@@ -51,18 +57,18 @@ export default function UserMenu() {
       {open && (
         <div
           id={panelId}
-          className="absolute right-0 top-full z-50 mt-3 w-64 rounded-2xl border border-line bg-surface p-2 shadow-card"
+          className="absolute right-0 top-full z-50 mt-3 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-2 shadow-card"
         >
           <div className="flex items-center gap-3 px-3 py-2.5">
             <Avatar user={me} size="md" />
-            <div className="min-w-0 leading-tight">
-              <p className="truncate font-medium">{me.name}</p>
-              <p className="truncate text-sm text-muted">@{me.handle}</p>
+            <div className="min-w-0 break-words">
+              <p className="font-medium">{me.name}</p>
+              <p className="text-sm text-muted">@{me.handle}</p>
             </div>
           </div>
-          <p className="px-3 pb-2 text-xs text-muted">
-            <span className="font-semibold text-ink">{compact(me.followers)}</span> followers ·{' '}
-            <span className="font-semibold text-ink">{compact(me.following)}</span> following
+          <p className="px-3 pb-2 text-sm text-muted">
+            <span className="font-semibold text-ink">{count(me.followers)}</span> followers ·{' '}
+            <span className="font-semibold text-ink">{count(me.following)}</span> following
           </p>
           <div className="border-t border-line pt-2">
             <a href={paths.profile(me.id)} onClick={() => setOpen(false)} className={linkClass}>

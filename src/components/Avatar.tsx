@@ -22,16 +22,20 @@ function initials(name: string): string {
     .toUpperCase()
 }
 
+/**
+ * Decorative: the person's name always appears next to it. The initials are generated content
+ * (not text), so they are not read out and never have to be part of an accessible name (SC 2.5.3).
+ * Both gradient stops are dark enough for white initials to reach 7:1 at every hue (SC 1.4.6).
+ */
 export default function Avatar({ user, size = 'md', className = '' }: Props) {
   return (
     <span
       aria-hidden="true"
-      className={`inline-grid shrink-0 place-items-center rounded-full font-display font-semibold text-white select-none ${sizes[size]} ${className}`}
+      data-initials={initials(user.name)}
+      className={`fc-border inline-grid shrink-0 place-items-center rounded-full font-display font-semibold text-white select-none before:content-[attr(data-initials)] ${sizes[size]} ${className}`}
       style={{
-        background: `linear-gradient(140deg, hsl(${user.hue} 62% 52%), hsl(${(user.hue + 40) % 360} 58% 34%))`,
+        background: `linear-gradient(140deg, hsl(${user.hue} 62% 22%), hsl(${(user.hue + 40) % 360} 58% 15%))`,
       }}
-    >
-      {initials(user.name)}
-    </span>
+    />
   )
 }

@@ -4,6 +4,36 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Accessibility to WCAG 2.2 level AAA, and the next level down where a rule has no AAA level (see "Accessibility" in the README).
+- Skip link, per-page document titles, and focus moved to the new page heading after navigation.
+- Help and accessibility page (`#/help`) with an accessibility statement, keyboard help and a glossary, linked from a footer on every page.
+- Glossary mechanism: jargon and abbreviations in captions, titles and bios open an in-place definition.
+- Breadcrumbs on profiles and per-user uploads.
+- "Mark all as read" on Notifications, and "Undo send" for the last message sent.
+- Status announcements for search results, filters and sent messages.
+- Support for `prefers-reduced-motion`, `prefers-contrast: more` and forced colours (Windows high contrast).
+
+### Changed
+
+- Colour tokens re-tuned: all text is at least 7:1 against its background and control borders at least 3:1, in both themes. The accent colour is darker in the light theme. A new `--edge` token is used for control borders; `--line` is for decorative dividers only.
+- Visible focus is now a 3px outline with a gap, and nothing hides under the sticky header.
+- Every button, switch and standalone link is at least 44 by 44 pixels.
+- Line height is 1.5 or more everywhere; captions and bios are no longer cut off after three lines; long names wrap instead of truncating.
+- Numbers, times and dates are written out ("1,204", "2 hours ago", "October 12") instead of abbreviated ("1.2k", "2h", "Oct"). Message times use a 24-hour clock.
+- Follow, like and filter buttons now keep their visible text in their accessible name; the filter shows a tick when selected.
+- Message drafts are kept per conversation instead of being shared between them.
+- Avatars are darker so their initials stay readable, and the initials are generated content rather than text.
+- The generated artwork has a text alternative on uploads and is hidden when decorative.
+
+### Removed
+
+- Notifications no longer mark themselves as read on a timer. Open one, or use "Mark all as read".
+- Unused `--leaf` colour token and the `compact()` number formatter.
+
 ## [0.1.0] - 2026-10-30
 
 ### Added
