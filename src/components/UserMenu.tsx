@@ -57,13 +57,13 @@ export default function UserMenu() {
       {open && (
         <div
           id={panelId}
-          className="absolute right-0 top-full z-50 mt-3 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-2 shadow-card"
+          className="absolute right-0 top-full z-50 mt-3 w-72 max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-2 shadow-card"
         >
           <div className="flex items-center gap-3 px-3 py-2.5">
-            <Avatar user={me} size="md" />
-            <div className="min-w-0 break-words">
-              <p className="font-medium">{me.name}</p>
-              <p className="text-sm text-muted">@{me.handle}</p>
+            <Avatar user={me} size="lg" />
+            <div className="flex h-14 min-w-0 flex-col justify-center">
+              <p className="truncate text-xl font-medium leading-6">{me.name}</p>
+              <p className="">@{me.handle}</p>
             </div>
           </div>
           <p className="px-3 pb-2 text-sm text-muted">
