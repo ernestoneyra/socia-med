@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently -n client,server -c cyan,green \"npm:client\" \"npm:server\"",
     "client": "vite",
-    "server": "node --disable-warning=ExperimentalWarning --env-file=.env server/index.ts",
+    "server": "node --use-system-ca --disable-warning=ExperimentalWarning --env-file=.env server/index.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
