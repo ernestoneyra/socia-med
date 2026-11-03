@@ -2,7 +2,7 @@
 
 A social media app for sharing creative work: photographs, recordings, rides and essays. Follow people, explore what they are making, message them and keep track of uploads.
 
-> **Status:** v0.1.0. The app reads and writes MongoDB through the Express API. Run `npm run seed` once to fill an empty database with sample data; after that, changes made directly in MongoDB show up in the app the next time the tab is focused or reloaded.
+> **Status:** v0.2.0. The app reads and writes MongoDB through the Express API, and can be deployed as a live demo on Render. Run `npm run seed` once to fill an empty database with sample data; after that, changes made directly in MongoDB show up in the app the next time the tab is focused or reloaded.
 
 ## Features
 
@@ -12,6 +12,8 @@ A social media app for sharing creative work: photographs, recordings, rides and
 - **Notifications**: activity feed with an unread badge.
 - **Uploads**: all uploads, or those of a single user.
 - **Profiles**: bio, interests, follower count and uploads.
+- **Posts**: create photo, audio, video and writing posts from your profile, and edit or delete your own.
+- **Likes, follows and messages** are saved to the database.
 - **Light and dark theme**, with a toggle in the header.
 - **Help and accessibility**: an accessibility statement, keyboard help and a glossary.
 
@@ -71,6 +73,7 @@ Edit `.env` and set your connection string:
 | ------------- | ------------------------------------ | ------- |
 | `MONGODB_URI` | MongoDB connection string (required) | none    |
 | `PORT`        | Port for the API server              | `5189`  |
+| `DEMO_RESET_HOURS` | Optional. Restore the sample data and delete attached files this often (see "Deploying a live demo") | off |
 
 ### Run
 
@@ -92,6 +95,8 @@ The server exits on startup if `MONGODB_URI` is missing or the database is unrea
 | `npm run dev`     | Run the client and the API together           |
 | `npm run client`  | Run only the Vite dev server                  |
 | `npm run server`  | Run only the Express API                      |
+| `npm start`       | Run the API and serve the built client; reads `MONGODB_URI` from the environment (no `.env`) |
+| `npm run seed`    | Fill the database with the sample data        |
 | `npm run build`   | Type-check and build the client into `dist/`  |
 | `npm run lint`    | Lint the project                              |
 | `npm run preview` | Preview the production build                  |

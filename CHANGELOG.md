@@ -6,8 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-03
+
 ### Added
 
+- `npm run seed` fills the database with the sample data, and `npm start` runs the server without a `.env` file (for hosting). Node.js 24 or later is now declared in `engines`.
 - A live demo can be deployed to Render with `render.yaml`: one service serves the API and the built client, `npm start` runs it, and `DEMO_RESET_HOURS` restores the sample data on a schedule. Writes are rate limited.
 - Edit and delete your own posts: buttons on your posts open an edit modal and a delete confirmation (`PATCH` and `DELETE /api/uploads/:id`). Deleting also removes the post's file, likes and notifications.
 - Create post: a button on your own profile opens a modal for photo, audio, video and writing posts. Photos, audio and video are attached as files (the length of audio and video is read from the file), and posts are saved with `POST /api/media` and `POST /api/uploads`.
@@ -30,7 +33,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Relative times ("2 hours ago", "Today", "Yesterday") are measured against the real current time instead of a fixed date in October 2026.
 - `npm run seed` now updates fields in place instead of replacing whole documents, so re-seeding keeps `createdAt`.
 - The sample data moved from `src/data/` to `server/seed-data/` and is only used by `npm run seed`.
-
 - Colour tokens re-tuned: all text is at least 7:1 against its background and control borders at least 3:1, in both themes. The accent colour is darker in the light theme. A new `--edge` token is used for control borders; `--line` is for decorative dividers only.
 - Visible focus is now a 3px outline with a gap, and nothing hides under the sticky header.
 - Every button, switch and standalone link is at least 44 by 44 pixels.
