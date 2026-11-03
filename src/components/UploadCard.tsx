@@ -34,7 +34,7 @@ export default function UploadCard({ upload }: { upload: Upload }) {
         {upload.mediaUrl && upload.kind === 'photo' ? (
           <img
             src={upload.mediaUrl}
-            alt={upload.alt ?? ''}
+            alt={`Photo: ${upload.title}`}
             loading="lazy"
             className="aspect-[4/3] w-full bg-surface-2 object-cover"
           />

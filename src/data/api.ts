@@ -57,7 +57,7 @@ export const uploadMedia = (file: File) =>
   request<{ url: string }>('/media', { method: 'POST', body: file, headers: { 'Content-Type': file.type } })
 
 export const createUpload = (
-  upload: Pick<Upload, 'id' | 'seed' | 'kind' | 'title' | 'caption' | 'tags' | 'duration' | 'mediaUrl' | 'alt'>,
+  upload: Pick<Upload, 'id' | 'seed' | 'kind' | 'title' | 'caption' | 'tags' | 'duration' | 'mediaUrl'>,
 ) =>
   request<Upload>('/uploads', { method: 'POST', body: JSON.stringify(upload) })
 

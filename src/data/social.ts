@@ -46,7 +46,6 @@ export async function createPost(post: PostInput, file?: File): Promise<Upload |
       caption: post.caption.trim(),
       tags: post.tags,
       ...(post.duration ? { duration: post.duration } : {}),
-      ...(post.alt?.trim() ? { alt: post.alt.trim() } : {}),
       ...(media ? { mediaUrl: media.url } : {}),
     })
   })

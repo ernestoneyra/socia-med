@@ -32,8 +32,6 @@ export interface Upload {
   duration?: string
   /** The attached photo, audio or video file. Writing, and the sample data, have none and show generated artwork. */
   mediaUrl?: string
-  /** Text alternative for a photo. */
-  alt?: string
   /** Whether the signed-in user has liked this upload. `likes` already includes their like. */
   likedByMe: boolean
 }

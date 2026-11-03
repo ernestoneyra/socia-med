@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Create post: a button on your own profile opens a modal for photo, audio, video and writing posts. Photos, audio and video are attached as files (the length of audio and video is read from the file), photos need a text description, and posts are saved with `POST /api/media` and `POST /api/uploads`.
+- Create post: a button on your own profile opens a modal for photo, audio, video and writing posts. Photos, audio and video are attached as files (the length of audio and video is read from the file), and posts are saved with `POST /api/media` and `POST /api/uploads`.
 - The app now reads from MongoDB through the API: `GET /api/me`, `/api/users`, `/api/uploads` and `/api/inbox`. Edits made directly in the database show up on the next focus or reload.
 - Sending and unsending messages, and marking conversations and notifications as read, are saved to the database.
 - Likes and follows are saved: new `likes` and `follows` collections and `PUT`/`DELETE` endpoints for `/api/uploads/:id/like` and `/api/users/:id/follow`. Counts update on screen straight away and stay in step with the database.

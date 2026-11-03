@@ -82,7 +82,6 @@ api.get('/uploads', async (_req, res) => {
     likedByMe: liked.has(u._id),
     ...(u.duration ? { duration: u.duration } : {}),
     ...(u.mediaUrl ? { mediaUrl: u.mediaUrl } : {}),
-    ...(u.alt ? { alt: u.alt } : {}),
   }))
   res.json(uploads)
 })
@@ -106,7 +105,7 @@ api.post(
 
 // New posts are always by the signed-in user. The server decides when it was posted.
 api.post('/uploads', async (req, res) => {
-  const { id, seed, kind, title, caption, tags, duration, alt, mediaUrl } = req.body ?? {}
+  const { id, seed, kind, title, caption, tags, duration, mediaUrl } = req.body ?? {}
   if (typeof id !== 'string' || id.length === 0 || id.length > 64) {
     res.status(400).json({ error: 'id must be a string of 1 to 64 characters.' })
     return
@@ -121,10 +120,9 @@ api.post('/uploads', async (req, res) => {
     !Array.isArray(tags) ||
     !tags.every((t) => typeof t === 'string') ||
     (duration !== undefined && typeof duration !== 'string') ||
-    (alt !== undefined && typeof alt !== 'string') ||
     (mediaUrl !== undefined && typeof mediaUrl !== 'string')
   ) {
-    res.status(400).json({ error: 'title, caption, tags, duration, alt and mediaUrl have the wrong type.' })
+    res.status(400).json({ error: 'title, caption, tags, duration and mediaUrl have the wrong type.' })
     return
   }
   const post: PostInput = {
@@ -132,7 +130,6 @@ api.post('/uploads', async (req, res) => {
     title,
     caption,
     tags,
-    ...(alt ? { alt } : {}),
     ...(duration ? { duration } : {}),
   }
   const errors = validatePost(post)
@@ -167,7 +164,6 @@ api.post('/uploads', async (req, res) => {
   const extras = {
     ...(hasFile(kind) && duration && kind !== 'photo' ? { duration: duration as string } : {}),
     ...(storedUrl ? { mediaUrl: storedUrl } : {}),
-    ...(kind === 'photo' ? { alt: (alt as string).trim() } : {}),
   }
   const doc = {
     _id: id,

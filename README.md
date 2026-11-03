@@ -41,7 +41,7 @@ When you add UI:
 
 ### Known limits
 
-- Photos get an author-written description when they are posted. Audio and video can be attached, but there is nowhere yet to add captions, transcripts, audio description or a sign-language version (1.2.x, AAA). The sample posts still use generated artwork.
+- Photos are described to screen readers only by their title, because the post form has no description field. Audio and video can be attached, but there is nowhere yet to add captions, transcripts, audio description or a sign-language version (1.2.x, AAA). The sample posts still use generated artwork.
 - Text written by users (captions, messages) is not rewritten for reading level (3.1.5) or checked for idioms.
 - Automated checks cannot prove AAA. Test with a screen reader and a keyboard before a release.
 
@@ -105,7 +105,7 @@ The server exits on startup if `MONGODB_URI` is missing or the database is unrea
 | GET    | `/api/users`                              | All users                                                        |
 | GET    | `/api/uploads`                            | All uploads, newest first                                        |
 | POST   | `/api/media`                              | Attach a file: the raw body, with its type as `Content-Type`. Returns `{ url }` |
-| POST   | `/api/uploads`                            | Create a post: `{ id, seed, kind, title, caption, tags, alt?, duration?, mediaUrl? }` |
+| POST   | `/api/uploads`                            | Create a post: `{ id, seed, kind, title, caption, tags, duration?, mediaUrl? }` |
 | GET    | `/api/inbox`                              | `{ conversations, notifications }`                               |
 | POST   | `/api/conversations/:userId/messages`     | Send a message: body `{ id, text }`                              |
 | DELETE | `/api/conversations/:userId/messages/:id` | Unsend one of your own messages                                  |

@@ -9,7 +9,6 @@ import {
 } from '@heroicons/react/24/outline'
 import { createPost } from '../data/social.ts'
 import {
-  MAX_ALT,
   MAX_CAPTION,
   MAX_MEDIA_BYTES,
   MAX_TAGS,
@@ -64,7 +63,6 @@ function PostForm({ onClose, onCreated }: { onClose: () => void; onCreated: (pos
   const [title, setTitle] = useState('')
   const [caption, setCaption] = useState('')
   const [tagText, setTagText] = useState('')
-  const [alt, setAlt] = useState('')
   const [file, setFile] = useState<File>()
   const [errors, setErrors] = useState<PostErrors>({})
   const [serverError, setServerError] = useState('')
@@ -79,12 +77,12 @@ function PostForm({ onClose, onCreated }: { onClose: () => void; onCreated: (pos
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (saving) return
-    const post = { kind, title, caption, tags: parseTags(tagText), ...(kind === 'photo' ? { alt } : {}) }
+    const post = { kind, title, caption, tags: parseTags(tagText) }
     const found = { ...validatePost(post), ...(validateFile(kind, file) ? { file: validateFile(kind, file) } : {}) }
     setErrors(found)
     setServerError('')
     // Show problems in the order the fields appear on screen.
-    const names = (['title', 'file', 'alt', 'caption', 'tags'] as const).filter((n) => found[n])
+    const names = (['title', 'file', 'caption', 'tags'] as const).filter((n) => found[n])
     if (names.length) {
       setAnnouncement(`${names.length} ${names.length === 1 ? 'problem' : 'problems'} to fix before posting.`)
       // Take the person to the first problem (SC 3.3.1).
@@ -187,31 +185,6 @@ function PostForm({ onClose, onCreated }: { onClose: () => void; onCreated: (pos
             className={`${fieldClass(!!errors.file)} cursor-pointer file:mr-3 file:cursor-pointer file:rounded-full file:border-0 file:bg-surface-2 file:px-4 file:py-1.5 file:text-sm file:font-medium file:text-ink`}
           />
           <FieldError id={id('file-error')}>{errors.file}</FieldError>
-        </div>
-      )}
-
-      {kind === 'photo' && (
-        <div>
-          <label htmlFor={id('alt')} className="block text-sm font-medium">
-            Describe the photo
-          </label>
-          <p id={id('alt-hint')} className="text-sm text-muted">
-            For people who cannot see it. Say what is in it, in a sentence or two.
-          </p>
-          <textarea
-            id={id('alt')}
-            name="alt"
-            value={alt}
-            onChange={(e) => setAlt(e.target.value)}
-            rows={2}
-            maxLength={MAX_ALT}
-            required
-            aria-required="true"
-            aria-invalid={errors.alt ? 'true' : undefined}
-            aria-describedby={describedBy('alt', 'hint')}
-            className={fieldClass(!!errors.alt)}
-          />
-          <FieldError id={id('alt-error')}>{errors.alt}</FieldError>
         </div>
       )}
 

@@ -5,7 +5,6 @@ import type { UploadKind } from './types.ts'
 export const POST_KINDS: UploadKind[] = ['photo', 'audio', 'video', 'writing']
 export const MAX_TITLE = 100
 export const MAX_CAPTION = 1000
-export const MAX_ALT = 300
 export const MAX_TAGS = 8
 export const MAX_TAG_LENGTH = 30
 export const MAX_MEDIA_BYTES = 25 * 1024 * 1024
@@ -66,24 +65,17 @@ export interface PostInput {
   title: string
   caption: string
   tags: string[]
-  /** Text description of a photo, for people who cannot see it. */
-  alt?: string
   /** Length of audio or video, read from the file. */
   duration?: string
 }
 
-export type PostErrors = Partial<Record<'kind' | 'file' | 'title' | 'alt' | 'caption' | 'tags' | 'duration', string>>
+export type PostErrors = Partial<Record<'kind' | 'file' | 'title' | 'caption' | 'tags' | 'duration', string>>
 
 export function validatePost(post: PostInput): PostErrors {
   const errors: PostErrors = {}
   if (!POST_KINDS.includes(post.kind)) errors.kind = 'Choose what kind of post this is.'
   if (!post.title.trim()) errors.title = 'Enter a title.'
   else if (post.title.trim().length > MAX_TITLE) errors.title = `Use ${MAX_TITLE} characters or fewer for the title.`
-  if (post.kind === 'photo') {
-    const alt = (post.alt ?? '').trim()
-    if (!alt) errors.alt = 'Describe the photo for people who cannot see it.'
-    else if (alt.length > MAX_ALT) errors.alt = `Use ${MAX_ALT} characters or fewer for the description.`
-  }
   if (post.caption.length > MAX_CAPTION) errors.caption = `Use ${MAX_CAPTION} characters or fewer for the caption.`
   if (post.tags.length > MAX_TAGS) errors.tags = `Use ${MAX_TAGS} tags or fewer.`
   else if (post.tags.some((t) => t.length > MAX_TAG_LENGTH)) {
