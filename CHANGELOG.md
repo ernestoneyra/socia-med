@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- A "Try it" section in the README with a link to the live demo, and screenshots of the main pages in `docs/screenshots/`.
+- `npm run screenshots` retakes those screenshots from a running app. It blocks every request that would change data, so it can be pointed at a database you care about. Adds `playwright-core` as a dev dependency.
+
 ## [0.2.0] - 2026-11-03
 
 ### Added
