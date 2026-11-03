@@ -5,6 +5,11 @@ interface Props {
   seed: number
   hue: number
   kind: UploadKind
+  /**
+   * Text alternative (WCAG 1.1.1). Leave it out when the artwork is decorative,
+   * for example a profile banner, and it is hidden from assistive technology.
+   */
+  label?: string
   className?: string
 }
 
@@ -23,7 +28,7 @@ function rng(seed: number) {
 const hsl = (h: number, s: number, l: number, a = 1) => `hsl(${h % 360} ${s}% ${l}% / ${a})`
 
 /** Generated stand-in for a real upload. 4:3 viewBox, scales to fill its container. */
-export default function Artwork({ seed, hue, kind, className = '' }: Props) {
+export default function Artwork({ seed, hue, kind, label, className = '' }: Props) {
   const id = useId()
   const r = rng(seed)
   const h2 = hue + 30 + Math.round(r() * 50)
@@ -88,7 +93,7 @@ export default function Artwork({ seed, hue, kind, className = '' }: Props) {
         {ridge(270, 30, hsl(h2, 35, 15))}
         {kind === 'video' && (
           <g>
-            <circle cx="200" cy="150" r="32" fill="rgb(0 0 0 / 0.45)" />
+            <circle cx="200" cy="150" r="32" fill="rgb(0 0 0 / 0.8)" />
             <path d="M190 134 L219 150 L190 166 Z" fill="white" />
           </g>
         )}
@@ -101,8 +106,7 @@ export default function Artwork({ seed, hue, kind, className = '' }: Props) {
     <svg
       viewBox="0 0 400 300"
       preserveAspectRatio="xMidYMid slice"
-      role="img"
-      aria-label={`${kind} upload artwork`}
+      {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}
       className={`block w-full ${className}`}
     >
       <defs>

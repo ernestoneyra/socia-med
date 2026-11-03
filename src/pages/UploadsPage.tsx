@@ -1,21 +1,16 @@
 import { useState } from 'react'
+import Breadcrumbs from '../components/Breadcrumbs.tsx'
+import KindFilter, { type KindFilterValue } from '../components/KindFilter.tsx'
 import PageHeading from '../components/PageHeading.tsx'
+import Status from '../components/Status.tsx'
 import UploadCard from '../components/UploadCard.tsx'
-import type { UploadKind } from '../data/types.ts'
-import { uploads } from '../data/uploads.ts'
-import { findUser } from '../data/users.ts'
+import { useData } from '../data/store.ts'
+import { plural } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 
-const filters: { value: UploadKind | 'all'; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'photo', label: 'Photos' },
-  { value: 'audio', label: 'Audio' },
-  { value: 'video', label: 'Video' },
-  { value: 'writing', label: 'Writing' },
-]
-
 export default function UploadsPage({ userId }: { userId?: string }) {
-  const [kind, setKind] = useState<UploadKind | 'all'>('all')
+  const { uploads, findUser } = useData()
+  const [kind, setKind] = useState<KindFilterValue>('all')
   const owner = userId ? findUser(userId) : undefined
 
   const scoped = owner ? uploads.filter((u) => u.userId === owner.id) : uploads
@@ -23,35 +18,33 @@ export default function UploadsPage({ userId }: { userId?: string }) {
 
   return (
     <>
+      {owner && (
+        <Breadcrumbs
+          items={[
+            { label: 'Home', href: paths.home },
+            { label: 'Uploads', href: paths.uploads() },
+            { label: owner.name },
+          ]}
+        />
+      )}
       <PageHeading
         title={owner ? `Uploads by ${owner.name}` : 'Uploads'}
-        subtitle={`${scoped.length} ${scoped.length === 1 ? 'upload' : 'uploads'} in total.`}
+        subtitle={`${plural(scoped.length, 'upload')} in total.`}
       >
         {owner && (
-          <a href={paths.uploads()} className="text-sm font-medium text-accent hover:underline">
+          <a
+            href={paths.uploads()}
+            className="inline-flex min-h-11 items-center text-sm font-medium text-accent underline underline-offset-4 hover:text-accent-hover"
+          >
             Show everyone’s uploads
           </a>
         )}
       </PageHeading>
 
-      <div role="group" aria-label="Filter by type" className="mb-6 flex flex-wrap gap-2">
-        {filters.map((f) => (
-          <button
-            key={f.value}
-            type="button"
-            aria-pressed={kind === f.value}
-            onClick={() => setKind(f.value)}
-            className={`rounded-full border px-4 py-1.5 text-sm font-medium ${
-              kind === f.value
-                ? 'border-accent bg-accent text-accent-ink'
-                : 'border-line bg-surface text-muted hover:text-ink'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      <KindFilter value={kind} onChange={setKind} />
+      <Status>{plural(visible.length, 'upload')} shown.</Status>
 
+      <h2 className="sr-only">Upload list</h2>
       {visible.length ? (
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((upload) => (
@@ -59,7 +52,7 @@ export default function UploadsPage({ userId }: { userId?: string }) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-line px-6 py-16 text-center text-muted">
+        <p className="rounded-2xl border border-dashed border-edge px-6 py-16 text-center text-muted">
           Nothing here yet.
         </p>
       )}

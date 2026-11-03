@@ -7,6 +7,7 @@ export type Route =
   | { name: 'notifications' }
   | { name: 'uploads'; id?: string }
   | { name: 'profile'; id: string }
+  | { name: 'help' }
 
 export const paths = {
   home: '#/',
@@ -15,6 +16,7 @@ export const paths = {
   notifications: '#/notifications',
   uploads: (userId?: string) => (userId ? `#/uploads/${userId}` : '#/uploads'),
   profile: (id: string) => `#/u/${id}`,
+  help: '#/help',
 }
 
 function parse(hash: string): Route {
@@ -28,6 +30,8 @@ function parse(hash: string): Route {
       return { name: 'notifications' }
     case 'uploads':
       return { name: 'uploads', id }
+    case 'help':
+      return { name: 'help' }
     case 'u':
       return id ? { name: 'profile', id } : { name: 'home' }
     default:

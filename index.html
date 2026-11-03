@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="A social media app for sharing creative work: photographs, recordings, rides and essays." />
     <title>socia-med</title>
     <script>
       // Apply the saved (or system) theme before first paint to avoid a flash.
@@ -17,6 +19,11 @@
     </script>
   </head>
   <body>
+    <noscript>
+      <p style="margin: 2rem; font-family: system-ui, sans-serif; font-size: 1.125rem; line-height: 1.5; max-width: 40rem">
+        socia-med needs JavaScript to run. Please turn JavaScript on in your browser settings and reload the page.
+      </p>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

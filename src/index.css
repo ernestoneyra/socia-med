@@ -5,18 +5,27 @@
 /* Theme is driven by data-theme on <html> (set in index.html before paint). */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+/*
+ * Colour tokens, tuned for WCAG 2.2 AAA:
+ *  - every text colour is >= 7:1 against every surface it is used on (SC 1.4.6)
+ *  - --edge (control borders, toggle tracks) is >= 3:1 against its surroundings (SC 1.4.11)
+ *  - --line is for purely decorative dividers only
+ * Re-check the ratios if you change a value here.
+ */
 :root {
   color-scheme: light;
   --paper: #f3eee4;
   --surface: #fbf8f1;
   --surface-2: #ebe4d6;
   --ink: #1f1b16;
-  --muted: #6b6254;
+  --muted: #4a4236;
   --line: #ddd4c2;
-  --accent: #b4431f;
+  --edge: #8a7f6c;
+  --accent: #822608;
+  --accent-hover: #6a1d06;
   --accent-ink: #fff8f0;
   --accent-soft: #f1d9cb;
-  --leaf: #4f6233;
+  --focus: var(--ink);
   --shadow: 0 1px 0 rgb(31 27 22 / 0.04), 0 8px 24px -12px rgb(31 27 22 / 0.18);
 }
 
@@ -26,13 +35,23 @@
   --surface: #1d1915;
   --surface-2: #28231d;
   --ink: #f1eadc;
-  --muted: #a1957f;
+  --muted: #c4b8a2;
   --line: #342d25;
-  --accent: #ee8a5c;
+  --edge: #7d705c;
+  --accent: #f59a6c;
+  --accent-hover: #ffb48c;
   --accent-ink: #1a0f08;
   --accent-soft: #3a2418;
-  --leaf: #a3b97a;
   --shadow: 0 1px 0 rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.7);
+}
+
+/* People who ask the OS for more contrast get the strongest tokens we have. */
+@media (prefers-contrast: more) {
+  :root,
+  :root[data-theme='dark'] {
+    --muted: var(--ink);
+    --line: var(--edge);
+  }
 }
 
 @theme inline {
@@ -42,18 +61,39 @@
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-edge: var(--edge);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
-  --color-leaf: var(--leaf);
   --shadow-card: var(--shadow);
   --font-sans: 'Figtree Variable', system-ui, sans-serif;
   --font-display: 'Fraunces Variable', Georgia, serif;
 }
 
+/* SC 1.4.8 (AAA): line spacing of at least 1.5 within paragraphs, at every text size. */
+@theme {
+  --text-xs--line-height: 1.5;
+  --text-sm--line-height: 1.5;
+  --text-base--line-height: 1.5;
+  --text-lg--line-height: 1.5;
+  --text-xl--line-height: 1.5;
+  --text-2xl--line-height: 1.5;
+  --text-3xl--line-height: 1.5;
+  --text-4xl--line-height: 1.5;
+}
+
 @layer base {
   html {
     background: var(--paper);
+    /* SC 2.4.12 (AAA): keep focused elements out from under the sticky header
+       (two rows on phones, one row from md up). */
+    scroll-padding-top: 8rem;
+  }
+  @media (min-width: 48rem) {
+    html {
+      scroll-padding-top: 6rem;
+    }
   }
   body {
     margin: 0;
@@ -61,11 +101,31 @@
     background: var(--paper);
     color: var(--ink);
     font-family: var(--font-sans);
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
+  p + p {
+    margin-top: 0.1em;
+  }
+  /* SC 2.4.13 (AAA): a 3px indicator in the text colour (>= 3:1 against the page) with a gap. */
   :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 3px solid var(--focus);
     outline-offset: 2px;
+  }
+  /* Headings and <main> receive programmatic focus after navigation; they are not controls. */
+  [tabindex='-1']:focus-visible {
+    outline: none;
+  }
+  /* SC 2.3.3 (AAA): no motion from interactions for people who ask for less of it. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
   }
   /* Smooth theme switch, but not for people who opt out of motion. */
   @media (prefers-reduced-motion: no-preference) {
@@ -80,5 +140,15 @@
         border-color 0.2s ease,
         color 0.2s ease;
     }
+  }
+}
+
+/* Windows High Contrast / forced colours: backgrounds are stripped, so give shapes a border. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+  .fc-border {
+    border: 1px solid CanvasText;
   }
 }

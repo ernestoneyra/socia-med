@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 .env
+# Photos, audio and video attached to posts
+server/media
 
 # Editor directories and files
 .vscode/*

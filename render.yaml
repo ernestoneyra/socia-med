@@ -1,0 +1,19 @@
+# Render Blueprint: one web service runs the API and serves the built client.
+# See "Deploying a live demo" in the README.
+services:
+  - type: web
+    name: socia-med
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 24
+      # The connection string of a separate demo database. Set it in the Render dashboard.
+      - key: MONGODB_URI
+        sync: false
+      # Restore the sample data (and delete attached files) this often. Remove to turn it off.
+      - key: DEMO_RESET_HOURS
+        value: 24
