@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-03
+
+### Added
+
+- A "Try it" section in the README with a link to the live demo at <https://socia-med-2oti.onrender.com>. It explains that guests need no account and all act as the same demo user, that the sample data is restored every 24 hours, and that the free tier can take up to a minute to wake.
+- Screenshots of the main pages (Home, Explore, Messages, Profile and Help in the dark theme) in `docs/screenshots/`, shown in a new "Screenshots" section of the README.
+- `npm run screenshots` retakes those screenshots from a running app. It blocks every request that would change data, so it can be pointed at a database you care about. Adds `playwright-core` as a dev dependency.
+
 ## [0.2.0] - 2026-11-03
 
 ### Added

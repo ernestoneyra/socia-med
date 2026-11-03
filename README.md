@@ -2,7 +2,37 @@
 
 A social media app for sharing creative work: photographs, recordings, rides and essays. Follow people, explore what they are making, message them and keep track of uploads.
 
-> **Status:** v0.2.0. The app reads and writes MongoDB through the Express API, and can be deployed as a live demo on Render. Run `npm run seed` once to fill an empty database with sample data; after that, changes made directly in MongoDB show up in the app the next time the tab is focused or reloaded.
+> **Status:** v0.2.1. The app reads and writes MongoDB through the Express API, and can be deployed as a live demo on Render. Run `npm run seed` once to fill an empty database with sample data; after that, changes made directly in MongoDB show up in the app the next time the tab is focused or reloaded.
+
+## Try it
+
+**Live demo: <https://socia-med-2oti.onrender.com>** – nothing to install and no account to make. Everyone who opens it acts as the same demo user, Ernesto, so you can click around freely: create, edit and delete posts from your profile, like, follow, and send messages. What you change is visible to everyone else who is trying it at the same time. The sample data is restored every 24 hours, so you can't break anything for long.
+
+The demo runs on a free hosting tier that sleeps when idle, so the first load can take up to a minute. Photos, audio and video you attach may disappear before the post does, because the free disk is wiped on every restart and reset.
+
+To run it yourself you need Node.js and a MongoDB database; see [Getting started](#getting-started). Then fill the database with the sample data using `npm run seed`. To host your own copy, see [Deploying a live demo](#deploying-a-live-demo-render).
+
+## Screenshots
+
+**Home** – recent work from the people you follow, filtered by photos, audio, video or writing.
+
+![Home](docs/screenshots/home.png)
+
+**Explore** – trending tags and suggested people to follow.
+
+![Explore](docs/screenshots/explore.png)
+
+**Messages** – conversations with unread counts, and the thread you have open.
+
+![Messages](docs/screenshots/messages.png)
+
+**Profile** – bio, interests, follower count and everything a person has posted.
+
+![Profile](docs/screenshots/profile.png)
+
+**Help and accessibility (dark theme)** – an accessibility statement, keyboard help and a glossary.
+
+![Help and accessibility in dark theme](docs/screenshots/help-dark.png)
 
 ## Features
 
@@ -100,6 +130,7 @@ The server exits on startup if `MONGODB_URI` is missing or the database is unrea
 | `npm run build`   | Type-check and build the client into `dist/`  |
 | `npm run lint`    | Lint the project                              |
 | `npm run preview` | Preview the production build                  |
+| `npm run screenshots` | Retake the images in `docs/screenshots/` from a running app (read-only: it blocks every request that would change data; needs Chrome) |
 
 ## API
 
@@ -139,6 +170,7 @@ Responses are never cached. Likes and follows are saved in the `likes` and `foll
 1. **Make a separate demo database.** In MongoDB Atlas create a new database or cluster just for the live site, and under *Network Access* allow `0.0.0.0/0` (Render's addresses change). Do not reuse the database you develop against: guests can change or delete anything in it.
 2. **Create the service.** In Render choose *New, Blueprint* and pick this repository. When asked, set `MONGODB_URI` to the demo database's connection string.
 3. **First start.** `DEMO_RESET_HOURS=24` makes the server seed the sample data on its first start, then restore it every 24 hours (the time of the last reset is stored in a `meta` collection, so restarts don't reset early).
+4. **Share the link.** Once it's live, Render shows the app's URL on the service page. The live demo above was deployed this way. The free plan sleeps when idle, so open the link yourself shortly before sharing it.
 
 Things to know:
 

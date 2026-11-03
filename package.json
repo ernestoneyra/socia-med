@@ -1,7 +1,7 @@
 {
   "name": "socia-med",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "scripts": {
     "dev": "concurrently -n client,server -c cyan,green \"npm:client\" \"npm:server\"",
@@ -11,7 +11,8 @@
     "seed": "node --use-system-ca --disable-warning=ExperimentalWarning --env-file=.env server/seed.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "@fontsource-variable/figtree": "^5.3.0",
@@ -36,6 +37,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.13.0",
+    "playwright-core": "^1.64.1",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.0",
     "vite": "^8.3.5"
