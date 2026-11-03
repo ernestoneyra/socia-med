@@ -2,7 +2,7 @@
 
 A social media app for sharing creative work: photographs, recordings, rides and essays. Follow people, explore what they are making, message them and keep track of uploads.
 
-> **Status:** v0.2.0. The app reads and writes MongoDB through the Express API, and can be deployed as a live demo on Render. Run `npm run seed` once to fill an empty database with sample data; after that, changes made directly in MongoDB show up in the app the next time the tab is focused or reloaded.
+> **Status:** v0.2.1. The app reads and writes MongoDB through the Express API, and can be deployed as a live demo on Render. Run `npm run seed` once to fill an empty database with sample data; after that, changes made directly in MongoDB show up in the app the next time the tab is focused or reloaded.
 
 ## Try it
 
