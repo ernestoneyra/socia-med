@@ -6,7 +6,7 @@ A social media app for sharing creative work: photographs, recordings, rides and
 
 ## Try it
 
-**Live demo: <https://REPLACE-WITH-YOUR-RENDER-URL.onrender.com>** – nothing to install and no account to make. Everyone who opens it acts as the same demo user, Ernesto, so you can click around freely: create, edit and delete posts from your profile, like, follow, and send messages. What you change is visible to everyone else who is trying it at the same time. The sample data is restored every 24 hours, so you can't break anything for long.
+**Live demo: <https://socia-med-2oti.onrender.com>** – nothing to install and no account to make. Everyone who opens it acts as the same demo user, Ernesto, so you can click around freely: create, edit and delete posts from your profile, like, follow, and send messages. What you change is visible to everyone else who is trying it at the same time. The sample data is restored every 24 hours, so you can't break anything for long.
 
 The demo runs on a free hosting tier that sleeps when idle, so the first load can take up to a minute. Photos, audio and video you attach may disappear before the post does, because the free disk is wiped on every restart and reset.
 
