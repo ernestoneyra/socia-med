@@ -7,7 +7,7 @@ import {
   VideoCameraIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
-import { createPost } from '../data/social.ts'
+import { createPost, updatePost } from '../data/social.ts'
 import {
   MAX_CAPTION,
   MAX_MEDIA_BYTES,
@@ -57,12 +57,21 @@ function FieldError({ id, children }: { id: string; children?: string }) {
   )
 }
 
-function PostForm({ onClose, onCreated }: { onClose: () => void; onCreated: (post: Upload) => void }) {
+function PostForm({
+  editing,
+  onClose,
+  onSaved,
+}: {
+  /** Set when changing an existing post: only its text can change, not its type or file. */
+  editing?: Upload
+  onClose: () => void
+  onSaved: (post: Upload) => void
+}) {
   const uid = useId()
-  const [kind, setKind] = useState<UploadKind>('photo')
-  const [title, setTitle] = useState('')
-  const [caption, setCaption] = useState('')
-  const [tagText, setTagText] = useState('')
+  const [kind, setKind] = useState<UploadKind>(editing?.kind ?? 'photo')
+  const [title, setTitle] = useState(editing?.title ?? '')
+  const [caption, setCaption] = useState(editing?.caption ?? '')
+  const [tagText, setTagText] = useState(editing?.tags.join(' ') ?? '')
   const [file, setFile] = useState<File>()
   const [errors, setErrors] = useState<PostErrors>({})
   const [serverError, setServerError] = useState('')
@@ -78,25 +87,38 @@ function PostForm({ onClose, onCreated }: { onClose: () => void; onCreated: (pos
     e.preventDefault()
     if (saving) return
     const post = { kind, title, caption, tags: parseTags(tagText) }
-    const found = { ...validatePost(post), ...(validateFile(kind, file) ? { file: validateFile(kind, file) } : {}) }
+    const fileError = editing ? undefined : validateFile(kind, file)
+    const found = { ...validatePost(post), ...(fileError ? { file: fileError } : {}) }
     setErrors(found)
     setServerError('')
     // Show problems in the order the fields appear on screen.
     const names = (['title', 'file', 'caption', 'tags'] as const).filter((n) => found[n])
     if (names.length) {
-      setAnnouncement(`${names.length} ${names.length === 1 ? 'problem' : 'problems'} to fix before posting.`)
+      setAnnouncement(`${names.length} ${names.length === 1 ? 'problem' : 'problems'} to fix before ${editing ? 'saving' : 'posting'}.`)
       // Take the person to the first problem (SC 3.3.1).
       formRef.current?.querySelector<HTMLElement>(`[name="${names[0]}"]`)?.focus()
       return
     }
     setSaving(true)
+    if (editing) {
+      setAnnouncement('Saving…')
+      const ok = await updatePost(editing.id, post)
+      setSaving(false)
+      if (ok) {
+        onSaved({ ...editing, title: post.title.trim(), caption: post.caption.trim(), tags: post.tags })
+      } else {
+        setServerError('Your changes could not be saved. Nothing was changed. Check your connection and try again.')
+        setAnnouncement('Your changes could not be saved.')
+      }
+      return
+    }
     setAnnouncement('Posting…')
     // The length of audio and video comes from the file, not from the person.
     const duration = file && (kind === 'audio' || kind === 'video') ? await readDuration(file, kind) : undefined
     const saved = await createPost({ ...post, ...(duration ? { duration } : {}) }, file)
     setSaving(false)
     if (saved) {
-      onCreated(saved)
+      onSaved(saved)
     } else {
       setServerError('Your post could not be saved. Nothing was posted. Check your connection and try again.')
       setAnnouncement('Your post could not be saved.')
@@ -109,6 +131,7 @@ function PostForm({ onClose, onCreated }: { onClose: () => void; onCreated: (pos
     <form ref={formRef} onSubmit={submit} noValidate className="space-y-5 px-5 pb-5 sm:px-6 sm:pb-6">
       <Status>{announcement}</Status>
 
+      {!editing && (
       <fieldset>
         <legend className="text-sm font-medium">Type of post</legend>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -138,6 +161,7 @@ function PostForm({ onClose, onCreated }: { onClose: () => void; onCreated: (pos
           ))}
         </div>
       </fieldset>
+      )}
 
       <div>
         <label htmlFor={id('title')} className="block text-sm font-medium">
@@ -159,7 +183,7 @@ function PostForm({ onClose, onCreated }: { onClose: () => void; onCreated: (pos
         <FieldError id={id('title-error')}>{errors.title}</FieldError>
       </div>
 
-      {hasFile(kind) && (
+      {!editing && hasFile(kind) && (
         <div>
           <label htmlFor={id('file')} className="block text-sm font-medium">
             {kind === 'photo' ? 'Photo file' : kind === 'audio' ? 'Audio file' : 'Video file'}
@@ -250,7 +274,7 @@ function PostForm({ onClose, onCreated }: { onClose: () => void; onCreated: (pos
           aria-disabled={saving}
           className="fc-border inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-medium text-accent-ink hover:bg-accent-hover aria-disabled:cursor-wait aria-disabled:opacity-70"
         >
-          {saving ? 'Posting…' : 'Post'}
+          {saving ? (editing ? 'Saving…' : 'Posting…') : editing ? 'Save changes' : 'Post'}
         </button>
       </div>
     </form>
@@ -263,12 +287,15 @@ function PostForm({ onClose, onCreated }: { onClose: () => void; onCreated: (pos
  */
 export default function CreatePostDialog({
   open,
+  editing,
   onClose,
-  onCreated,
+  onSaved,
 }: {
   open: boolean
+  /** Pass an existing post to change its text instead of creating a new one. */
+  editing?: Upload
   onClose: () => void
-  onCreated: (post: Upload) => void
+  onSaved: (post: Upload) => void
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -289,7 +316,7 @@ export default function CreatePostDialog({
     >
       <div className="flex items-start justify-between gap-3 px-5 pb-4 pt-5 sm:px-6 sm:pt-6">
         <h2 id={titleId} className="font-display text-2xl font-semibold">
-          Create post
+          {editing ? 'Edit post' : 'Create post'}
         </h2>
         <button
           type="button"
@@ -297,11 +324,11 @@ export default function CreatePostDialog({
           className="-mr-2 -mt-1 grid size-11 shrink-0 place-items-center rounded-full hover:bg-surface-2"
         >
           <XMarkIcon className="size-5" aria-hidden="true" />
-          <span className="sr-only">Close, discard this post</span>
+          <span className="sr-only">{editing ? 'Close, discard changes' : 'Close, discard this post'}</span>
         </button>
       </div>
       {/* Mounted only while open, so every visit starts with an empty form. */}
-      {open && <PostForm onClose={onClose} onCreated={onCreated} />}
+      {open && <PostForm editing={editing} onClose={onClose} onSaved={onSaved} />}
     </dialog>
   )
 }

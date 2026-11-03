@@ -61,6 +61,14 @@ export const createUpload = (
 ) =>
   request<Upload>('/uploads', { method: 'POST', body: JSON.stringify(upload) })
 
+export const updateUpload = (id: string, change: Pick<Upload, 'title' | 'caption' | 'tags'>) =>
+  request<Pick<Upload, 'id' | 'title' | 'caption' | 'tags'>>(`/uploads/${enc(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(change),
+  })
+
+export const deleteUpload = (id: string) => request<void>(`/uploads/${enc(id)}`, { method: 'DELETE' })
+
 export const setLiked = (uploadId: string, liked: boolean) =>
   request<{ liked: boolean; likes: number }>(`/uploads/${enc(uploadId)}/like`, {
     method: liked ? 'PUT' : 'DELETE',

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- A live demo can be deployed to Render with `render.yaml`: one service serves the API and the built client, `npm start` runs it, and `DEMO_RESET_HOURS` restores the sample data on a schedule. Writes are rate limited.
+- Edit and delete your own posts: buttons on your posts open an edit modal and a delete confirmation (`PATCH` and `DELETE /api/uploads/:id`). Deleting also removes the post's file, likes and notifications.
 - Create post: a button on your own profile opens a modal for photo, audio, video and writing posts. Photos, audio and video are attached as files (the length of audio and video is read from the file), and posts are saved with `POST /api/media` and `POST /api/uploads`.
 - The app now reads from MongoDB through the API: `GET /api/me`, `/api/users`, `/api/uploads` and `/api/inbox`. Edits made directly in the database show up on the next focus or reload.
 - Sending and unsending messages, and marking conversations and notifications as read, are saved to the database.

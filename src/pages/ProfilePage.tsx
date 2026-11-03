@@ -132,7 +132,7 @@ export default function ProfilePage({ userId }: { userId: string }) {
         <CreatePostDialog
           open={creating}
           onClose={() => setCreating(false)}
-          onCreated={(post) => {
+          onSaved={(post) => {
             setCreating(false)
             setAnnouncement(`Your post “${post.title}” was published.`)
           }}

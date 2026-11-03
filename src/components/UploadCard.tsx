@@ -1,19 +1,25 @@
+import { useState } from 'react'
 import {
   ChatBubbleOvalLeftIcon,
   DocumentTextIcon,
   HeartIcon as HeartOutline,
   MusicalNoteIcon,
+  PencilSquareIcon,
   PhotoIcon,
+  TrashIcon,
   VideoCameraIcon,
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid'
 import type { Upload, UploadKind } from '../data/types.ts'
-import { setLiked } from '../data/social.ts'
+import { deletePost, setLiked } from '../data/social.ts'
 import { useData } from '../data/store.ts'
 import { ago, count, isoDuration, spokenDuration } from '../lib/format.ts'
+import { announce } from '../lib/announce.ts'
 import { paths } from '../lib/router.ts'
 import Artwork from './Artwork.tsx'
 import Avatar from './Avatar.tsx'
+import ConfirmDeleteDialog from './ConfirmDeleteDialog.tsx'
+import CreatePostDialog from './CreatePostDialog.tsx'
 import GlossaryText from './GlossaryText.tsx'
 
 const kindMeta: Record<UploadKind, { label: string; Icon: typeof PhotoIcon }> = {
@@ -24,7 +30,10 @@ const kindMeta: Record<UploadKind, { label: string; Icon: typeof PhotoIcon }> = 
 }
 
 export default function UploadCard({ upload }: { upload: Upload }) {
-  const { getUser } = useData()
+  const { getUser, meId } = useData()
+  const [editing, setEditing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const own = upload.userId === meId
   const author = getUser(upload.userId)
   const { label, Icon } = kindMeta[upload.kind]
 
@@ -92,6 +101,53 @@ export default function UploadCard({ upload }: { upload: Upload }) {
         <p className="text-sm text-muted">
           Posted <time dateTime={upload.createdAt}>{ago(upload.createdAt)}</time>
         </p>
+
+        {own && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              aria-haspopup="dialog"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border border-edge px-4 text-sm font-medium hover:bg-surface-2"
+            >
+              <PencilSquareIcon className="size-4" aria-hidden="true" />
+              Edit<span className="sr-only"> “{upload.title}”</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeleting(true)}
+              aria-haspopup="dialog"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border border-edge px-4 text-sm font-medium hover:bg-surface-2"
+            >
+              <TrashIcon className="size-4" aria-hidden="true" />
+              Delete<span className="sr-only"> “{upload.title}”</span>
+            </button>
+            <CreatePostDialog
+              open={editing}
+              editing={upload}
+              onClose={() => setEditing(false)}
+              onSaved={() => {
+                setEditing(false)
+                announce(`Your changes to “${upload.title}” were saved.`)
+              }}
+            />
+            <ConfirmDeleteDialog
+              open={deleting}
+              title={upload.title}
+              onCancel={() => setDeleting(false)}
+              onConfirm={async () => {
+                const ok = await deletePost(upload.id)
+                if (ok) {
+                  // The card is gone, so put focus on the page heading rather than on nothing.
+                  // Wait a tick: the modal must be gone from the page before focus can move out of it.
+                  setTimeout(() => document.querySelector<HTMLElement>('main h1')?.focus({ preventScroll: true }), 0)
+                  announce(`The post “${upload.title}” was deleted.`)
+                }
+                return ok
+              }}
+            />
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-x-3 border-t border-line pt-3">
           <a href={paths.profile(author.id)} className="flex min-h-11 min-w-0 items-center gap-2.5">

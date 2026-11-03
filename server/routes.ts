@@ -12,7 +12,8 @@ import {
   type PostInput,
 } from '../src/data/postRules.ts'
 import { ME_ID } from './config.ts'
-import { MEDIA_DIR, MEDIA_URL_PATTERN, saveMedia } from './media.ts'
+import { MEDIA_DIR, MEDIA_URL_PATTERN, deleteMedia, saveMedia } from './media.ts'
+import { rateLimit } from './rateLimit.ts'
 import {
   ConversationModel,
   FollowModel,
@@ -35,6 +36,11 @@ api.use((_req, res, next) => {
   res.set('Cache-Control', 'no-store')
   next()
 })
+
+// The site can be public, so writes are limited per visitor: a lot of ordinary use, but not a flood.
+const anyWrite = rateLimit({ max: 300, windowMs: 10 * 60_000, message: 'Too many changes in a short time. Wait a few minutes and try again.' })
+const fileWrite = rateLimit({ max: 20, windowMs: 10 * 60_000, message: 'Too many files attached in a short time. Wait a few minutes and try again.' })
+api.use((req, res, next) => (req.method === 'GET' ? next() : anyWrite(req, res, next)))
 
 api.get('/me', (_req, res) => {
   res.json({ id: ME_ID })
@@ -90,6 +96,7 @@ api.get('/uploads', async (_req, res) => {
 // URL this returns. The server picks the name and the extension from the (allow-listed) type.
 api.post(
   '/media',
+  fileWrite,
   express.raw({ type: ALL_MEDIA_TYPES, limit: MAX_MEDIA_BYTES }),
   async (req, res) => {
     const type = req.headers['content-type']?.split(';')[0]?.trim().toLowerCase() ?? ''
@@ -192,6 +199,59 @@ api.post('/uploads', async (req, res) => {
     ...extras,
   }
   res.status(201).json(upload)
+})
+
+// Only your own posts can be changed or removed. The type and the attached file stay as posted.
+api.patch('/uploads/:id', async (req, res) => {
+  const upload = await UploadModel.findById(req.params.id)
+  if (!upload) {
+    res.status(404).json({ error: 'Post not found.' })
+    return
+  }
+  if (upload.userId !== ME_ID) {
+    res.status(403).json({ error: 'You can only edit your own posts.' })
+    return
+  }
+  const { title, caption, tags } = req.body ?? {}
+  if (
+    typeof title !== 'string' ||
+    typeof caption !== 'string' ||
+    !Array.isArray(tags) ||
+    !tags.every((t) => typeof t === 'string')
+  ) {
+    res.status(400).json({ error: 'title, caption and tags have the wrong type.' })
+    return
+  }
+  const errors = validatePost({ kind: upload.kind, title, caption, tags })
+  const firstError = Object.values(errors)[0]
+  if (firstError) {
+    res.status(400).json({ error: firstError })
+    return
+  }
+  upload.title = title.trim()
+  upload.caption = caption.trim()
+  upload.tags = tags
+  await upload.save()
+  res.json({ id: upload._id, title: upload.title, caption: upload.caption, tags: upload.tags })
+})
+
+api.delete('/uploads/:id', async (req, res) => {
+  const upload = await UploadModel.findById(req.params.id).lean()
+  if (!upload) {
+    res.status(404).json({ error: 'Post not found.' })
+    return
+  }
+  if (upload.userId !== ME_ID) {
+    res.status(403).json({ error: 'You can only delete your own posts.' })
+    return
+  }
+  await Promise.all([
+    UploadModel.deleteOne({ _id: upload._id }),
+    LikeModel.deleteMany({ uploadId: upload._id }),
+    NotificationModel.deleteMany({ uploadId: upload._id }),
+  ])
+  await deleteMedia(upload.mediaUrl ?? undefined)
+  res.status(204).end()
 })
 
 api.get('/inbox', async (_req, res) => {

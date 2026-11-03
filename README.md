@@ -105,6 +105,8 @@ The server exits on startup if `MONGODB_URI` is missing or the database is unrea
 | GET    | `/api/users`                              | All users                                                        |
 | GET    | `/api/uploads`                            | All uploads, newest first                                        |
 | POST   | `/api/media`                              | Attach a file: the raw body, with its type as `Content-Type`. Returns `{ url }` |
+| PATCH  | `/api/uploads/:id`                        | Edit your own post's `{ title, caption, tags }`                  |
+| DELETE | `/api/uploads/:id`                        | Delete your own post, its file, its likes and its notifications  |
 | POST   | `/api/uploads`                            | Create a post: `{ id, seed, kind, title, caption, tags, duration?, mediaUrl? }` |
 | GET    | `/api/inbox`                              | `{ conversations, notifications }`                               |
 | POST   | `/api/conversations/:userId/messages`     | Send a message: body `{ id, text }`                              |
@@ -124,6 +126,22 @@ Attached photos, audio and video (up to 25 MB; JPEG, PNG, WebP, GIF, MP3, M4A, W
 Responses are never cached. Likes and follows are saved in the `likes` and `follows` collections (one document per pair). Repeating a PUT or DELETE changes nothing, and the stored `likes`, `followers` and `following` counts only move when a row is really added or removed.
 
 `npm run seed` upserts every sample document by id, so running it again **overwrites** edits you made to those documents in MongoDB. It also empties `likes` and `follows`, because it resets the counts they are kept in step with.
+
+## Deploying a live demo (Render)
+
+[render.yaml](render.yaml) describes one Render web service that runs the API and serves the built client, so guests can try everything (create, edit and delete posts, like, follow, message) without an account. Everyone acts as the same demo user and sees the same data.
+
+1. **Make a separate demo database.** In MongoDB Atlas create a new database or cluster just for the live site, and under *Network Access* allow `0.0.0.0/0` (Render's addresses change). Do not reuse the database you develop against: guests can change or delete anything in it.
+2. **Create the service.** In Render choose *New, Blueprint* and pick this repository. When asked, set `MONGODB_URI` to the demo database's connection string.
+3. **First start.** `DEMO_RESET_HOURS=24` makes the server seed the sample data on its first start, then restore it every 24 hours (the time of the last reset is stored in a `meta` collection, so restarts don't reset early).
+
+Things to know:
+
+- **Never set `DEMO_RESET_HOURS` anywhere that points at data you want to keep.** Each reset deletes every upload, conversation, notification, like and follow before re-seeding.
+- **Attached files are not permanent.** Render's free disk is wiped on every deploy and restart, and the reset also deletes `server/media/`. A post's file can therefore disappear before the post does.
+- **The free plan sleeps** after about 15 minutes without visits, so the first load can take up to a minute.
+- Writes are rate limited per visitor (300 changes and 20 attached files per 10 minutes) and files are limited to 25 MB.
+- `npm start` runs the server without a `.env` file, reading `MONGODB_URI` from the environment. `npm run dev` is still the way to work locally.
 
 ## Project structure
 

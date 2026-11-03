@@ -57,6 +57,33 @@ export async function createPost(post: PostInput, file?: File): Promise<Upload |
   return saved
 }
 
+/** Saves new text for one of your own posts. Resolves to true if the server kept it. */
+export async function updatePost(id: string, change: Pick<PostInput, 'title' | 'caption' | 'tags'>): Promise<boolean> {
+  const saved = await persist(() =>
+    api.updateUpload(id, { title: change.title.trim(), caption: change.caption.trim(), tags: change.tags }),
+  )
+  if (!saved) return false
+  updateData((core) =>
+    mapUpload(core, id, (u) => ({ ...u, title: saved.title, caption: saved.caption, tags: saved.tags })),
+  )
+  return true
+}
+
+/** Removes one of your own posts, along with its likes and the notifications about it. */
+export async function deletePost(id: string): Promise<boolean> {
+  const done = await persist(async () => {
+    await api.deleteUpload(id)
+    return true
+  })
+  if (!done) return false
+  updateData((core) => ({
+    ...core,
+    uploads: core.uploads.filter((u) => u.id !== id),
+    notifications: core.notifications.filter((n) => n.uploadId !== id),
+  }))
+  return true
+}
+
 export function setFollowing(userId: string, following: boolean) {
   let changed = false
   updateData((core) => {
