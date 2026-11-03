@@ -3,7 +3,7 @@ import type { Conversation, Message, Notification, Upload, User } from './types.
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
     ...init,
-    headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
+    headers: init?.headers ?? (init?.body ? { 'Content-Type': 'application/json' } : undefined),
   })
   if (!res.ok) {
     let detail = ''
@@ -51,6 +51,15 @@ export const markConversationRead = (userId: string) =>
 
 export const markNotificationRead = (id: string) =>
   request<void>(`/notifications/${enc(id)}/read`, { method: 'POST' })
+
+/** Sends the file itself as the request body; the server answers with the URL it is stored at. */
+export const uploadMedia = (file: File) =>
+  request<{ url: string }>('/media', { method: 'POST', body: file, headers: { 'Content-Type': file.type } })
+
+export const createUpload = (
+  upload: Pick<Upload, 'id' | 'seed' | 'kind' | 'title' | 'caption' | 'tags' | 'duration' | 'mediaUrl' | 'alt'>,
+) =>
+  request<Upload>('/uploads', { method: 'POST', body: JSON.stringify(upload) })
 
 export const setLiked = (uploadId: string, liked: boolean) =>
   request<{ liked: boolean; likes: number }>(`/uploads/${enc(uploadId)}/like`, {

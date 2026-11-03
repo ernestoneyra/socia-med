@@ -31,13 +31,30 @@ export default function UploadCard({ upload }: { upload: Upload }) {
   return (
     <article className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
       <div className="relative">
-        <Artwork
-          seed={upload.seed}
-          hue={author.hue}
-          kind={upload.kind}
-          label={`Generated ${label.toLowerCase()} artwork for “${upload.title}”`}
-          className="aspect-[4/3]"
-        />
+        {upload.mediaUrl && upload.kind === 'photo' ? (
+          <img
+            src={upload.mediaUrl}
+            alt={upload.alt ?? ''}
+            loading="lazy"
+            className="aspect-[4/3] w-full bg-surface-2 object-cover"
+          />
+        ) : upload.mediaUrl && upload.kind === 'video' ? (
+          <video
+            src={upload.mediaUrl}
+            controls
+            preload="metadata"
+            aria-label={`Video: ${upload.title}`}
+            className="aspect-[4/3] w-full bg-black object-contain"
+          />
+        ) : (
+          <Artwork
+            seed={upload.seed}
+            hue={author.hue}
+            kind={upload.kind}
+            label={`Generated ${label.toLowerCase()} artwork for “${upload.title}”`}
+            className="aspect-[4/3]"
+          />
+        )}
         {/* Near-opaque so the white text stays above 7:1 on any artwork behind it (SC 1.4.6). */}
         <span className="fc-border absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/90 px-3 py-1 text-xs font-medium text-white">
           <Icon className="size-4" aria-hidden="true" />
@@ -50,6 +67,9 @@ export default function UploadCard({ upload }: { upload: Upload }) {
           )}
         </span>
       </div>
+      {upload.mediaUrl && upload.kind === 'audio' && (
+        <audio src={upload.mediaUrl} controls preload="none" aria-label={`Audio: ${upload.title}`} className="w-full" />
+      )}
 
       <div className="space-y-3 p-4">
         <div>

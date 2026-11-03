@@ -1,7 +1,9 @@
 import * as api from './api.ts'
+import type { PostInput } from './postRules.ts'
 import { persist, updateData, type Core } from './store.ts'
+import type { Upload } from './types.ts'
 
-/** Likes and follows. Both change on screen straight away and are saved in the background. */
+/** Likes, follows and new posts. Likes and follows change on screen straight away and are saved in the background. */
 
 const mapUpload = (core: Core, id: string, change: (u: Core['uploads'][number]) => Core['uploads'][number]): Core => ({
   ...core,
@@ -26,6 +28,34 @@ export function setLiked(uploadId: string, liked: boolean) {
         : core,
     )
   })
+}
+
+/**
+ * Unlike a like, a new post is only shown once the server has saved it, so the form can stay
+ * open with an error if saving fails. Resolves to the saved post, or undefined if it failed.
+ */
+export async function createPost(post: PostInput, file?: File): Promise<Upload | undefined> {
+  const saved = await persist(async () => {
+    // The file goes first; the post then points at where the server stored it.
+    const media = file ? await api.uploadMedia(file) : undefined
+    return api.createUpload({
+      id: crypto.randomUUID(),
+      seed: Math.floor(Math.random() * 1_000_000),
+      kind: post.kind,
+      title: post.title.trim(),
+      caption: post.caption.trim(),
+      tags: post.tags,
+      ...(post.duration ? { duration: post.duration } : {}),
+      ...(post.alt?.trim() ? { alt: post.alt.trim() } : {}),
+      ...(media ? { mediaUrl: media.url } : {}),
+    })
+  })
+  if (saved) {
+    updateData((core) =>
+      core.uploads.some((u) => u.id === saved.id) ? core : { ...core, uploads: [saved, ...core.uploads] },
+    )
+  }
+  return saved
 }
 
 export function setFollowing(userId: string, following: boolean) {

@@ -41,7 +41,7 @@ When you add UI:
 
 ### Known limits
 
-- Pictures, audio and video are generated stand-ins. Real uploads will need an author-written text description, and audio and video need captions, transcripts, audio description and a sign-language version (1.2.x, AAA).
+- Photos get an author-written description when they are posted. Audio and video can be attached, but there is nowhere yet to add captions, transcripts, audio description or a sign-language version (1.2.x, AAA). The sample posts still use generated artwork.
 - Text written by users (captions, messages) is not rewritten for reading level (3.1.5) or checked for idioms.
 - Automated checks cannot prove AAA. Test with a screen reader and a keyboard before a release.
 
@@ -104,6 +104,8 @@ The server exits on startup if `MONGODB_URI` is missing or the database is unrea
 | GET    | `/api/me`                                 | The signed-in user's id (no login yet, so always the seed user)  |
 | GET    | `/api/users`                              | All users                                                        |
 | GET    | `/api/uploads`                            | All uploads, newest first                                        |
+| POST   | `/api/media`                              | Attach a file: the raw body, with its type as `Content-Type`. Returns `{ url }` |
+| POST   | `/api/uploads`                            | Create a post: `{ id, seed, kind, title, caption, tags, alt?, duration?, mediaUrl? }` |
 | GET    | `/api/inbox`                              | `{ conversations, notifications }`                               |
 | POST   | `/api/conversations/:userId/messages`     | Send a message: body `{ id, text }`                              |
 | DELETE | `/api/conversations/:userId/messages/:id` | Unsend one of your own messages                                  |
@@ -117,6 +119,8 @@ The server exits on startup if `MONGODB_URI` is missing or the database is unrea
 
 Every document also gets `createdAt` and `updatedAt` from Mongoose; they are bookkeeping and are not sent to the client. Uploads and notifications keep their own `createdAt` (when the content was posted), and messages their `sentAt`. Times shown in the app ("4 days ago", "Today") come from those stored values and are measured against the current time.
 
+Attached photos, audio and video (up to 25 MB; JPEG, PNG, WebP, GIF, MP3, M4A, WAV, OGG, WebM, MP4) are stored on disk in `server/media/` under names the server picks, and served from `/media`. Only the URL is kept in the database. Back that folder up with the database, and note that a file whose post was never saved stays there.
+
 Responses are never cached. Likes and follows are saved in the `likes` and `follows` collections (one document per pair). Repeating a PUT or DELETE changes nothing, and the stored `likes`, `followers` and `following` counts only move when a row is really added or removed.
 
 `npm run seed` upserts every sample document by id, so running it again **overwrites** edits you made to those documents in MongoDB. It also empties `likes` and `follows`, because it resets the counts they are kept in step with.
@@ -125,6 +129,7 @@ Responses are never cached. Likes and follows are saved in the `likes` and `foll
 
 ```
 server/            Express API, Mongoose models and MongoDB connection
+  media/           Attached files (created on first upload, not in git)
   seed-data/       Sample data used only by `npm run seed`
 src/
   components/      Header, upload cards, avatars, theme toggle, user menu...

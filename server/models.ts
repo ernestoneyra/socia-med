@@ -42,6 +42,10 @@ const uploadSchema = new Schema(
     tags: { type: [String], default: [] },
     seed: { type: Number, required: true },
     duration: { type: String },
+    /** Attached photo, audio or video: a `/media/...` URL. Writing and the sample data have none. */
+    mediaUrl: { type: String },
+    /** Text description of a photo. */
+    alt: { type: String },
   },
   // `createdAt` is the content's own time (when it was posted), so only `updatedAt` is automatic.
   { versionKey: false, timestamps: { createdAt: false, updatedAt: true } },

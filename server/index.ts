@@ -1,6 +1,7 @@
 import express from 'express'
 import mongoose from 'mongoose'
 import { connectDB } from './db.ts'
+import { MEDIA_DIR } from './media.ts'
 import { api } from './routes.ts'
 
 const app = express()
@@ -15,6 +16,17 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
+// Attached files. Named by the server, so a file can never be served as a different type.
+app.use(
+  '/media',
+  express.static(MEDIA_DIR, {
+    immutable: true,
+    maxAge: '1y',
+    fallthrough: false,
+    setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff'),
+  }),
+)
+
 app.use('/api', api)
 
 app.use('/api', (_req, res) => {
@@ -25,6 +37,15 @@ app.use('/api', (_req, res) => {
 // Express recognises an error handler by its four parameters, so `_next` must stay.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status = (err as { status?: number } | null)?.status
+  if (status === 413) {
+    res.status(413).json({ error: 'That file is too large.' })
+    return
+  }
+  if (status === 404) {
+    res.status(404).json({ error: 'Not found.' })
+    return
+  }
   console.error(err)
   res.status(500).json({ error: 'Something went wrong on the server.' })
 })

@@ -10,6 +10,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': 'http://localhost:5189',
+      '/media': 'http://localhost:5189',
     },
   },
 })

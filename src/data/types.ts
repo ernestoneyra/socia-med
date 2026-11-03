@@ -30,6 +30,10 @@ export interface Upload {
   seed: number
   /** Audio/video length, e.g. "3:42". */
   duration?: string
+  /** The attached photo, audio or video file. Writing, and the sample data, have none and show generated artwork. */
+  mediaUrl?: string
+  /** Text alternative for a photo. */
+  alt?: string
   /** Whether the signed-in user has liked this upload. `likes` already includes their like. */
   likedByMe: boolean
 }

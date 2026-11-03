@@ -1,10 +1,13 @@
-import { CalendarDaysIcon, EnvelopeIcon, MapPinIcon } from '@heroicons/react/24/outline'
+import { useState } from 'react'
+import { CalendarDaysIcon, EnvelopeIcon, MapPinIcon, PlusIcon } from '@heroicons/react/24/outline'
 import Artwork from '../components/Artwork.tsx'
 import Avatar from '../components/Avatar.tsx'
 import Breadcrumbs from '../components/Breadcrumbs.tsx'
+import CreatePostDialog from '../components/CreatePostDialog.tsx'
 import FollowButton from '../components/FollowButton.tsx'
 import GlossaryText from '../components/GlossaryText.tsx'
 import PageHeading from '../components/PageHeading.tsx'
+import Status from '../components/Status.tsx'
 import UploadCard from '../components/UploadCard.tsx'
 import { useData } from '../data/store.ts'
 import { count, formatMonthYear } from '../lib/format.ts'
@@ -13,6 +16,8 @@ import { paths } from '../lib/router.ts'
 export default function ProfilePage({ userId }: { userId: string }) {
   const { meId, findUser, getUploadsBy } = useData()
   const user = findUser(userId)
+  const [creating, setCreating] = useState(false)
+  const [announcement, setAnnouncement] = useState('')
 
   if (!user) {
     return (
@@ -105,7 +110,34 @@ export default function ProfilePage({ userId }: { userId: string }) {
         </div>
       </div>
 
-      <h2 className="mb-4 mt-10 font-display text-2xl font-semibold">Uploads</h2>
+      <div className="mb-4 mt-10 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-2xl font-semibold">Uploads</h2>
+        {own && (
+          <button
+            type="button"
+            onClick={() => {
+              setAnnouncement('')
+              setCreating(true)
+            }}
+            aria-haspopup="dialog"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-accent-ink hover:bg-accent-hover"
+          >
+            <PlusIcon className="size-4" aria-hidden="true" />
+            Create post
+          </button>
+        )}
+      </div>
+      <Status>{announcement}</Status>
+      {own && (
+        <CreatePostDialog
+          open={creating}
+          onClose={() => setCreating(false)}
+          onCreated={(post) => {
+            setCreating(false)
+            setAnnouncement(`Your post “${post.title}” was published.`)
+          }}
+        />
+      )}
       {theirUploads.length ? (
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {theirUploads.map((upload) => (

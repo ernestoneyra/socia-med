@@ -1,6 +1,18 @@
-import { Router } from 'express'
+import { access } from 'node:fs/promises'
+import { join } from 'node:path'
+import express, { Router } from 'express'
 import type { Conversation, Message, Notification, Upload, User } from '../src/data/types.ts'
+import {
+  ALL_MEDIA_TYPES,
+  MAX_MEDIA_BYTES,
+  MEDIA_TYPES,
+  hasFile,
+  kindOfMediaType,
+  validatePost,
+  type PostInput,
+} from '../src/data/postRules.ts'
 import { ME_ID } from './config.ts'
+import { MEDIA_DIR, MEDIA_URL_PATTERN, saveMedia } from './media.ts'
 import {
   ConversationModel,
   FollowModel,
@@ -69,8 +81,121 @@ api.get('/uploads', async (_req, res) => {
     seed: u.seed,
     likedByMe: liked.has(u._id),
     ...(u.duration ? { duration: u.duration } : {}),
+    ...(u.mediaUrl ? { mediaUrl: u.mediaUrl } : {}),
+    ...(u.alt ? { alt: u.alt } : {}),
   }))
   res.json(uploads)
+})
+
+// An attached file is sent first, as the raw request body, and the post then points at the
+// URL this returns. The server picks the name and the extension from the (allow-listed) type.
+api.post(
+  '/media',
+  express.raw({ type: ALL_MEDIA_TYPES, limit: MAX_MEDIA_BYTES }),
+  async (req, res) => {
+    const type = req.headers['content-type']?.split(';')[0]?.trim().toLowerCase() ?? ''
+    const kind = kindOfMediaType(type)
+    if (!kind || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+      res.status(415).json({ error: 'Send a photo, audio or video file as the request body.' })
+      return
+    }
+    const url = await saveMedia(req.body, MEDIA_TYPES[kind][type])
+    res.status(201).json({ url })
+  },
+)
+
+// New posts are always by the signed-in user. The server decides when it was posted.
+api.post('/uploads', async (req, res) => {
+  const { id, seed, kind, title, caption, tags, duration, alt, mediaUrl } = req.body ?? {}
+  if (typeof id !== 'string' || id.length === 0 || id.length > 64) {
+    res.status(400).json({ error: 'id must be a string of 1 to 64 characters.' })
+    return
+  }
+  if (!Number.isInteger(seed) || seed < 0 || seed > 1_000_000) {
+    res.status(400).json({ error: 'seed must be a whole number from 0 to 1000000.' })
+    return
+  }
+  if (
+    typeof title !== 'string' ||
+    typeof caption !== 'string' ||
+    !Array.isArray(tags) ||
+    !tags.every((t) => typeof t === 'string') ||
+    (duration !== undefined && typeof duration !== 'string') ||
+    (alt !== undefined && typeof alt !== 'string') ||
+    (mediaUrl !== undefined && typeof mediaUrl !== 'string')
+  ) {
+    res.status(400).json({ error: 'title, caption, tags, duration, alt and mediaUrl have the wrong type.' })
+    return
+  }
+  const post: PostInput = {
+    kind,
+    title,
+    caption,
+    tags,
+    ...(alt ? { alt } : {}),
+    ...(duration ? { duration } : {}),
+  }
+  const errors = validatePost(post)
+  const firstError = Object.values(errors)[0]
+  if (firstError) {
+    res.status(400).json({ error: firstError })
+    return
+  }
+
+  // Photo, audio and video need a file this server stored, of the matching kind.
+  let storedUrl: string | undefined
+  if (hasFile(kind)) {
+    const extension = typeof mediaUrl === 'string' ? MEDIA_URL_PATTERN.exec(mediaUrl)?.[1] : undefined
+    if (!mediaUrl || !extension || !Object.values(MEDIA_TYPES[kind]).includes(extension)) {
+      res.status(400).json({ error: `Attach a ${kind} file to post it.` })
+      return
+    }
+    try {
+      await access(join(MEDIA_DIR, mediaUrl.slice('/media/'.length)))
+    } catch {
+      res.status(400).json({ error: 'The attached file was not found. Attach it again.' })
+      return
+    }
+    storedUrl = mediaUrl
+  }
+  if (await UploadModel.exists({ _id: id })) {
+    res.status(409).json({ error: 'A post with that id already exists.' })
+    return
+  }
+
+  const createdAt = new Date()
+  const extras = {
+    ...(hasFile(kind) && duration && kind !== 'photo' ? { duration: duration as string } : {}),
+    ...(storedUrl ? { mediaUrl: storedUrl } : {}),
+    ...(kind === 'photo' ? { alt: (alt as string).trim() } : {}),
+  }
+  const doc = {
+    _id: id,
+    userId: ME_ID,
+    kind,
+    title: title.trim(),
+    caption: caption.trim(),
+    createdAt,
+    tags,
+    seed,
+    ...extras,
+  }
+  await UploadModel.create(doc)
+  const upload: Upload = {
+    id,
+    userId: ME_ID,
+    kind,
+    title: doc.title,
+    caption: doc.caption,
+    createdAt: toIso(createdAt),
+    likes: 0,
+    comments: 0,
+    tags,
+    seed,
+    likedByMe: false,
+    ...extras,
+  }
+  res.status(201).json(upload)
 })
 
 api.get('/inbox', async (_req, res) => {
