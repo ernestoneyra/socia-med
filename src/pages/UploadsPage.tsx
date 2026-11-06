@@ -43,7 +43,7 @@ export default function UploadsPage({ userId }: { userId?: string }) {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-edge px-6 py-16 text-center text-muted">
+        <p className="px-6 py-16 text-center text-muted">
           Nothing here yet.
         </p>
       )}
