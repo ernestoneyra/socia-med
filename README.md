@@ -2,7 +2,7 @@
 
 A social media app for sharing creative work: photographs, recordings, rides and essays. Follow people, explore what they are making, message them and keep track of uploads.
 
-> **Status:** v0.2.1. The app reads and writes MongoDB through the Express API, and can be deployed as a live demo on Render. Run `npm run seed` once to fill an empty database with sample data; after that, changes made directly in MongoDB show up in the app the next time the tab is focused or reloaded.
+> **Status:** v0.3.0. The app reads and writes MongoDB through the Express API, and can be deployed as a live demo on Render. Run `npm run seed` once to fill an empty database with sample data; after that, changes made directly in MongoDB show up in the app the next time the tab is focused or reloaded.
 
 ## Try it
 
@@ -18,7 +18,7 @@ To run it yourself you need Node.js and a MongoDB database; see [Getting started
 
 ![Home](docs/screenshots/home.png)
 
-**Explore** – trending tags and suggested people to follow.
+**Explore** – trending tags, the latest posts and suggested people to follow.
 
 ![Explore](docs/screenshots/explore.png)
 
@@ -36,11 +36,11 @@ To run it yourself you need Node.js and a MongoDB database; see [Getting started
 
 ## Features
 
-- **Home**: a feed of recent uploads from the people you follow.
-- **Explore**: trending tags and suggested people to follow.
+- **Home**: a feed of recent uploads from the people you follow, filtered by one or more types.
+- **Explore**: trending tags (pick one to see its posts), the latest posts and suggested people to follow.
 - **Messages**: conversation list and threads, with unread counts.
 - **Notifications**: activity feed with an unread badge.
-- **Uploads**: all uploads, or those of a single user.
+- **Uploads**: your own uploads from the header tab, or those of any user from their profile.
 - **Profiles**: bio, interests, follower count and uploads.
 - **Posts**: create photo, audio, video and writing posts from your profile, and edit or delete your own.
 - **Likes, follows and messages** are saved to the database.

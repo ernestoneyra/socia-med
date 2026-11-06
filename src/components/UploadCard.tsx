@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import {
   ChatBubbleOvalLeftIcon,
   DocumentTextIcon,
@@ -21,6 +21,7 @@ import Avatar from './Avatar.tsx'
 import ConfirmDeleteDialog from './ConfirmDeleteDialog.tsx'
 import CreatePostDialog from './CreatePostDialog.tsx'
 import GlossaryText from './GlossaryText.tsx'
+import PostDialog from './PostDialog.tsx'
 
 const kindMeta: Record<UploadKind, { label: string; Icon: typeof PhotoIcon }> = {
   photo: { label: 'Photo', Icon: PhotoIcon },
@@ -33,12 +34,30 @@ export default function UploadCard({ upload }: { upload: Upload }) {
   const { getUser, meId } = useData()
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [reading, setReading] = useState(false)
+  const [truncated, setTruncated] = useState(false)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const captionRef = useRef<HTMLParagraphElement>(null)
   const own = upload.userId === meId
   const author = getUser(upload.userId)
   const { label, Icon } = kindMeta[upload.kind]
 
+  // Offer "Read more" only when the title or description is actually cut off at this card width.
+  useLayoutEffect(() => {
+    const title = titleRef.current
+    const caption = captionRef.current
+    if (!title || !caption) return
+    const check = () =>
+      setTruncated(title.scrollHeight > title.clientHeight + 1 || caption.scrollHeight > caption.clientHeight + 1)
+    check()
+    const observer = new ResizeObserver(check)
+    observer.observe(title)
+    observer.observe(caption)
+    return () => observer.disconnect()
+  }, [upload.title, upload.caption])
+
   return (
-    <article className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
       <div className="relative">
         {upload.mediaUrl && upload.kind === 'photo' ? (
           <img
@@ -80,14 +99,31 @@ export default function UploadCard({ upload }: { upload: Upload }) {
         <audio src={upload.mediaUrl} controls preload="none" aria-label={`Audio: ${upload.title}`} className="w-full" />
       )}
 
-      <div className="space-y-3 p-4">
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        {/* Title and description take a fixed amount of room, so the tags and everything below
+            start at the same place on every card. Longer text is cut and opens in a dialog. */}
         <div>
-          <h3 className="font-display text-lg font-semibold">
+          <h3 ref={titleRef} className="line-clamp-2 min-h-[1.3lh] break-words font-display text-lg font-semibold">
             <GlossaryText text={upload.title} />
           </h3>
-          <p className="mt-1 text-sm leading-relaxed text-muted">
+          <p ref={captionRef} className="mt-1 line-clamp-2 min-h-[2lh] break-words text-sm leading-relaxed text-muted">
             <GlossaryText text={upload.caption} />
           </p>
+          {/* Third row of the description: one line tall, with the button's 44px target reaching
+              down into the empty space under it. */}
+          <div className="relative h-[1lh] text-sm leading-relaxed">
+            {truncated && (
+              <button
+                type="button"
+                onClick={() => setReading(true)}
+                aria-haspopup="dialog"
+                className="absolute left-0 top-0 inline-flex min-h-11 min-w-11 items-start text-[12px] font-medium text-ink underline underline-offset-2 hover:text-accent"
+              >
+                Read more<span className="sr-only"> of “{upload.title}”</span>
+              </button>
+            )}
+          </div>
+          <PostDialog open={reading} upload={upload} authorName={author.name} onClose={() => setReading(false)} />
         </div>
 
         <ul aria-label="Tags" className="flex flex-wrap gap-1.5">
@@ -149,7 +185,7 @@ export default function UploadCard({ upload }: { upload: Upload }) {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-x-3 border-t border-line pt-3">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 border-t border-line pt-3">
           <a href={paths.profile(author.id)} className="flex min-h-11 min-w-0 items-center gap-2.5">
             <Avatar user={author} size="sm" />
             <span className="min-w-0 break-words text-sm font-medium">

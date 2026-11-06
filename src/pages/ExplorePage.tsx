@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
+import { CheckIcon } from '@heroicons/react/20/solid'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import Avatar from '../components/Avatar.tsx'
+import UploadCard from '../components/UploadCard.tsx'
 import FollowButton from '../components/FollowButton.tsx'
 import GlossaryText from '../components/GlossaryText.tsx'
 import PageHeading from '../components/PageHeading.tsx'
@@ -23,6 +25,8 @@ export default function ExplorePage() {
     [uploads],
   )
   const [query, setQuery] = useState('')
+  const [activeTag, setActiveTag] = useState<string | null>(null)
+  const posts = activeTag ? uploads.filter((u) => u.tags.includes(activeTag)) : uploads
   const q = query.trim().toLowerCase().replace(/^[#@]/, '')
   const searching = q.length > 0
 
@@ -70,9 +74,11 @@ export default function ExplorePage() {
       </form>
 
       <Status>
-        {searching
-          ? `${plural(people.length, 'person', 'people')} and ${plural(trending.length, 'tag')} match “${query.trim()}”.`
-          : ''}
+        {activeTag
+          ? `${plural(posts.length, 'post')} tagged #${activeTag} shown.`
+          : searching
+            ? `${plural(people.length, 'person', 'people')} and ${plural(trending.length, 'tag')} match “${query.trim()}”.`
+            : ''}
       </Status>
 
       <section aria-labelledby="trending" className="mb-10">
@@ -81,15 +87,45 @@ export default function ExplorePage() {
         </h2>
         {trending.length === 0 && <p className="text-muted">No tags match “{query.trim()}”.</p>}
         <ul className="flex flex-wrap gap-2">
-          {trending.map(([tag, uses]) => (
-            <li
-              key={tag}
-              className="rounded-full border border-edge bg-surface px-4 py-1.5 text-sm"
-            >
-              #{tag} <span className="ml-1 text-muted">{plural(uses, 'upload')}</span>
-            </li>
-          ))}
+          {trending.map(([tag, uses]) => {
+            const pressed = tag === activeTag
+            return (
+              <li key={tag}>
+                <button
+                  type="button"
+                  aria-pressed={pressed}
+                  onClick={() => setActiveTag(pressed ? null : tag)}
+                  className={`inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border px-4 text-sm transition-colors ${
+                    pressed
+                      ? 'border-accent bg-accent font-medium text-accent-ink hover:opacity-90'
+                      : 'border-edge bg-surface hover:border-accent hover:bg-surface-2'
+                  }`}
+                >
+                  {/* A tick as well as a colour change, so the selection is not conveyed by colour alone (SC 1.4.1). */}
+                  {pressed && <CheckIcon className="size-4" aria-hidden="true" />}#{tag}
+                  <span className={pressed ? '' : 'text-muted'}>{plural(uses, 'upload')}</span>
+                </button>
+              </li>
+            )
+          })}
         </ul>
+      </section>
+
+      <section aria-labelledby="posts" className="mb-10">
+        <h2 id="posts" className="mb-3 text-lg font-semibold">
+          {activeTag ? `Posts tagged #${activeTag}` : 'Latest posts'}
+        </h2>
+        {posts.length ? (
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {posts.map((upload) => (
+              <UploadCard key={upload.id} upload={upload} />
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-edge px-6 py-16 text-center text-muted">
+            No posts use #{activeTag}.
+          </p>
+        )}
       </section>
 
       <section aria-labelledby="people">

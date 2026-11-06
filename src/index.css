@@ -104,8 +104,21 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
+  /* Sticky footer: on short pages, main grows so the footer rests at the bottom of the viewport. */
+  #root {
+    display: flex;
+    min-height: 100svh;
+    flex-direction: column;
+  }
   p + p {
     margin-top: 0.1em;
+  }
+  /* Tailwind's reset leaves buttons with the default arrow; show the hand over every control.
+     Utility classes such as disabled:cursor-not-allowed are in a later layer and still win. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  summary {
+    cursor: pointer;
   }
   /* SC 2.4.13 (AAA): a 3px indicator in the text colour (>= 3:1 against the page) with a gap. */
   :focus-visible {
