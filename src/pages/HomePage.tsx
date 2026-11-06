@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import KindFilter, { type KindFilterValue } from '../components/KindFilter.tsx'
+import KindFilter, { filterByKinds, type KindFilterValue } from '../components/KindFilter.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import Status from '../components/Status.tsx'
 import UploadCard from '../components/UploadCard.tsx'
@@ -8,8 +8,8 @@ import { plural } from '../lib/format.ts'
 
 export default function HomePage() {
   const { me, uploads } = useData()
-  const [kind, setKind] = useState<KindFilterValue>('all')
-  const visible = kind === 'all' ? uploads : uploads.filter((u) => u.kind === kind)
+  const [kinds, setKinds] = useState<KindFilterValue>([])
+  const visible = filterByKinds(uploads, kinds)
 
   return (
     <>
@@ -18,7 +18,7 @@ export default function HomePage() {
         subtitle="Fresh work from the people you follow: photographs, recordings, rides and essays, newest first."
       />
 
-      <KindFilter value={kind} onChange={setKind} />
+      <KindFilter value={kinds} onChange={setKinds} />
       <Status>{plural(visible.length, 'upload')} shown.</Status>
 
       <h2 className="sr-only">Latest uploads</h2>

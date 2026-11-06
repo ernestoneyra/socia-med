@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Breadcrumbs from '../components/Breadcrumbs.tsx'
-import KindFilter, { type KindFilterValue } from '../components/KindFilter.tsx'
+import KindFilter, { filterByKinds, type KindFilterValue } from '../components/KindFilter.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import Status from '../components/Status.tsx'
 import UploadCard from '../components/UploadCard.tsx'
@@ -10,11 +10,11 @@ import { paths } from '../lib/router.ts'
 
 export default function UploadsPage({ userId }: { userId?: string }) {
   const { uploads, findUser } = useData()
-  const [kind, setKind] = useState<KindFilterValue>('all')
+  const [kinds, setKinds] = useState<KindFilterValue>([])
   const owner = userId ? findUser(userId) : undefined
 
   const scoped = owner ? uploads.filter((u) => u.userId === owner.id) : uploads
-  const visible = kind === 'all' ? scoped : scoped.filter((u) => u.kind === kind)
+  const visible = filterByKinds(scoped, kinds)
 
   return (
     <>
@@ -30,18 +30,9 @@ export default function UploadsPage({ userId }: { userId?: string }) {
       <PageHeading
         title={owner ? `Uploads by ${owner.name}` : 'Uploads'}
         subtitle={`${plural(scoped.length, 'upload')} in total.`}
-      >
-        {owner && (
-          <a
-            href={paths.uploads()}
-            className="inline-flex min-h-11 items-center text-sm font-medium text-accent underline underline-offset-4 hover:text-accent-hover"
-          >
-            Show everyone’s uploads
-          </a>
-        )}
-      </PageHeading>
+      />
 
-      <KindFilter value={kind} onChange={setKind} />
+      <KindFilter value={kinds} onChange={setKinds} />
       <Status>{plural(visible.length, 'upload')} shown.</Status>
 
       <h2 className="sr-only">Upload list</h2>
