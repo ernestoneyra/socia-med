@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import KindFilter, { filterByKinds, type KindFilterValue } from '../components/KindFilter.tsx'
 import PageHeading from '../components/PageHeading.tsx'
+import ShrugIcon from '../components/ShrugIcon.tsx'
 import Status from '../components/Status.tsx'
 import UploadCard from '../components/UploadCard.tsx'
 import { useData } from '../data/store.ts'
@@ -29,9 +30,10 @@ export default function HomePage() {
           ))}
         </div>
       ) : (
-        <p className="rounded-2xl border border-dashed border-edge px-6 py-16 text-center text-muted">
-          Nothing here yet.
-        </p>
+        <div className="flex flex-col items-center gap-4 px-6 py-16 text-center text-muted">
+          <ShrugIcon className="size-24" />
+          <p>Nothing here yet.</p>
+        </div>
       )}
     </>
   )
