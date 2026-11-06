@@ -30,11 +30,26 @@ export default function PostDialog({
     if (!open && dialog.open) dialog.close()
   }, [open])
 
+  // Close the native dialog directly; its "close" event then tells the card to update its state.
+  function closeDialog() {
+    if (ref.current?.open) ref.current.close()
+    else onClose()
+  }
+
   return (
     <dialog
       ref={ref}
       aria-labelledby={headingId}
       onClose={onClose}
+      // A click on the backdrop lands on the <dialog> itself, but so does a click on its padding,
+      // so check where the pointer is against the dialog's box.
+      onClick={(event) => {
+        if (event.target !== event.currentTarget) return
+        const box = event.currentTarget.getBoundingClientRect()
+        const outside =
+          event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom
+        if (outside) closeDialog()
+      }}
       className="m-auto max-h-[calc(100dvh-1.5rem)] w-[min(40rem,calc(100%-1.5rem))] overflow-y-auto rounded-3xl border border-line bg-surface p-5 text-ink shadow-card backdrop:bg-black/70 sm:p-6"
     >
       <div className="flex items-start justify-between gap-3">
@@ -43,7 +58,7 @@ export default function PostDialog({
         </h2>
         <button
           type="button"
-          onClick={onClose}
+          onClick={closeDialog}
           className="-mr-2 -mt-1 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full hover:bg-surface-2"
         >
           <XMarkIcon className="size-5" aria-hidden="true" />

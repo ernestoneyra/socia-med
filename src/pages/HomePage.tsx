@@ -10,7 +10,11 @@ import { plural } from '../lib/format.ts'
 export default function HomePage() {
   const { me, uploads } = useData()
   const [kinds, setKinds] = useState<KindFilterValue>([])
-  const visible = filterByKinds(uploads, kinds)
+  // The home feed is other people's work; your own posts live on the Uploads page.
+  const visible = filterByKinds(
+    uploads.filter((u) => u.userId !== me.id),
+    kinds,
+  )
 
   return (
     <>
