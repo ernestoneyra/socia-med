@@ -104,6 +104,12 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
+  /* Sticky footer: on short pages, main grows so the footer rests at the bottom of the viewport. */
+  #root {
+    display: flex;
+    min-height: 100svh;
+    flex-direction: column;
+  }
   p + p {
     margin-top: 0.1em;
   }
