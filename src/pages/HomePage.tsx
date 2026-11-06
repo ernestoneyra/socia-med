@@ -24,7 +24,7 @@ export default function HomePage() {
 
       <h2 className="sr-only">Latest uploads</h2>
       {visible.length ? (
-        <div className="grid items-start gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((upload) => (
             <UploadCard key={upload.id} upload={upload} />
           ))}

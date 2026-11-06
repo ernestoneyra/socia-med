@@ -116,7 +116,7 @@ export default function ExplorePage() {
           {activeTag ? `Posts tagged #${activeTag}` : 'Latest posts'}
         </h2>
         {posts.length ? (
-          <div className="grid items-start gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {posts.map((upload) => (
               <UploadCard key={upload.id} upload={upload} />
             ))}
