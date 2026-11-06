@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-06
+
+### Added
+
+- Explore now has a "Latest posts" section with the full post cards. The trending tags are buttons: pick one to show only the posts with that tag (selected with a tick, and announced to screen readers), pick it again to clear it.
+- "Read more" on a post card opens the full title and description in a dialog (with the author, time and tags) when the card had to cut them short. It only appears when the text is actually cut off at that card width.
+- A shrugging figure above "Nothing here yet." on empty Home and Uploads pages.
+
+### Changed
+
+- The type filter on Home and Uploads lets you pick several types at once (for example Photos and Audio). "All" clears the selection, and deselecting the last type goes back to "All".
+- Home shows other people's work only; your own posts are on the Uploads page.
+- The Uploads tab in the header now opens your own uploads and is only highlighted there. The "Show everyone's uploads" link on a user's uploads page is removed; other people's uploads are reached from their profiles.
+- Post cards in a row are the same height: the title and description take a fixed amount of room (two lines each), so tags and the author line start in the same place on every card.
+- The footer stays at the bottom of the window on short pages.
+- Every button now shows the pointer (hand) cursor, except when disabled.
+
 ## [0.2.1] - 2026-11-03
 
 ### Added
