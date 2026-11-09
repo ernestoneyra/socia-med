@@ -17,9 +17,12 @@ const filters: { value: UploadKind; label: string }[] = [
 export default function KindFilter({
   value,
   onChange,
+  className = 'mb-6',
 }: {
   value: KindFilterValue
   onChange: (value: KindFilterValue) => void
+  /** Spacing around the group; defaults to a bottom margin. */
+  className?: string
 }) {
   const toggle = (kind: UploadKind) =>
     // Deselecting the last type falls back to "All" rather than showing nothing.
@@ -36,7 +39,7 @@ export default function KindFilter({
   ]
 
   return (
-    <div role="group" aria-label="Filter by type" className="mb-6 flex flex-wrap gap-2">
+    <div role="group" aria-label="Filter by type" className={`flex flex-wrap gap-2 ${className}`}>
       {buttons.map(({ key, label, pressed, onClick }) => (
         <button
           key={key}

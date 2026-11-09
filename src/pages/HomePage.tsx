@@ -2,18 +2,24 @@ import { useState } from 'react'
 import KindFilter, { filterByKinds, type KindFilterValue } from '../components/KindFilter.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import ShrugIcon from '../components/ShrugIcon.tsx'
+import SortFilter from '../components/SortFilter.tsx'
 import Status from '../components/Status.tsx'
 import UploadCard from '../components/UploadCard.tsx'
 import { useData } from '../data/store.ts'
 import { plural } from '../lib/format.ts'
+import { sortByDate, type SortValue } from '../lib/sort.ts'
 
 export default function HomePage() {
   const { me, uploads } = useData()
   const [kinds, setKinds] = useState<KindFilterValue>([])
+  const [sort, setSort] = useState<SortValue>('latest')
   // The home feed is other people's work; your own posts live on the Uploads page.
-  const visible = filterByKinds(
-    uploads.filter((u) => u.userId !== me.id),
-    kinds,
+  const visible = sortByDate(
+    filterByKinds(
+      uploads.filter((u) => u.userId !== me.id),
+      kinds,
+    ),
+    sort,
   )
 
   return (
@@ -23,7 +29,10 @@ export default function HomePage() {
         subtitle="Fresh work from the people you follow: photographs, recordings, rides and essays, newest first."
       />
 
-      <KindFilter value={kinds} onChange={setKinds} />
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <KindFilter value={kinds} onChange={setKinds} className="" />
+        <SortFilter value={sort} onChange={setSort} />
+      </div>
       <Status>{plural(visible.length, 'upload')} shown.</Status>
 
       <h2 className="sr-only">Latest uploads</h2>
