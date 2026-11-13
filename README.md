@@ -2,7 +2,7 @@
 
 A social media app for sharing creative work: photographs, recordings, rides and essays. Follow people, explore what they are making, message them and keep track of uploads.
 
-> **Status:** v0.3.0. The app reads and writes MongoDB through the Express API, and can be deployed as a live demo on Render. Run `npm run seed` once to fill an empty database with sample data; after that, changes made directly in MongoDB show up in the app the next time the tab is focused or reloaded.
+> **Status:** v1.0.0, the first stable release. Every person has their own account, inbox, likes and follows. The app reads and writes MongoDB through the Express API, is available in four languages, and can be deployed as a live demo on Render. Run `npm run seed` once to fill an empty database with sample data; after that, changes made directly in MongoDB show up in the app the next time the tab is focused or reloaded. See [CHANGELOG.md](CHANGELOG.md) for what changed since 0.3.0 and how to upgrade.
 
 ## Try it
 
@@ -41,7 +41,8 @@ To run it yourself you need Node.js and a MongoDB database; see [Getting started
 - **Messages**: conversation list and threads, with unread counts, and a "New message" search to start a conversation with anyone.
 - **Notifications**: activity feed with an unread badge.
 - **Uploads**: your own uploads from the header tab, or those of any user from their profile.
-- **Profiles**: bio, interests, follower count and uploads.
+- **Accounts**: create an account or sign in; everyone has their own inbox, likes and follows (see "Accounts").
+- **Profiles**: bio, interests, follower count and uploads, with a profile photo and background image you can change or remove on your own profile (photos up to 3 MB).
 - **Posts**: create photo, audio, video and writing posts from your profile, and edit or delete your own.
 - **Likes, follows and messages** are saved to the database.
 - **Light and dark theme**, with a toggle in the header.
@@ -144,6 +145,8 @@ The server exits on startup if `MONGODB_URI` is missing or the database is unrea
 | GET    | `/api/me`                                 | The signed-in user's id. **Everything below needs a session; without one the answer is 401** |
 | GET    | `/api/users`                              | All users                                                        |
 | GET    | `/api/uploads`                            | All uploads, newest first                                        |
+| PUT    | `/api/me/avatar`, `/api/me/background`    | Set your profile photo or background image to a photo already sent to `/api/media`: `{ url }`. Photos only, up to 3 MB |
+| DELETE | `/api/me/avatar`, `/api/me/background`    | Remove it and its file. Answers 204                              |
 | POST   | `/api/media`                              | Attach a file: the raw body, with its type as `Content-Type`. Returns `{ url }` |
 | PATCH  | `/api/uploads/:id`                        | Edit your own post's `{ title, caption, tags }`                  |
 | DELETE | `/api/uploads/:id`                        | Delete your own post, its file, its likes and its notifications  |

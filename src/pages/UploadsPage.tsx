@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import Breadcrumbs from '../components/Breadcrumbs.tsx'
-import KindFilter, { filterByKinds, type KindFilterValue } from '../components/KindFilter.tsx'
+import KindFilter, { type KindFilterValue } from '../components/KindFilter.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import ShrugIcon from '../components/ShrugIcon.tsx'
 import Status from '../components/Status.tsx'
 import UploadCard from '../components/UploadCard.tsx'
 import { useData } from '../data/store.ts'
 import { useT } from '../i18n/useT.tsx'
+import { filterByKinds } from '../lib/kinds.ts'
 import { paths } from '../lib/router.ts'
 
 export default function UploadsPage({ userId }: { userId?: string }) {

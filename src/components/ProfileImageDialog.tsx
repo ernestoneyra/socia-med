@@ -47,11 +47,10 @@ function ImageForm({
 
   // The preview is a temporary local URL: release it when the file changes or the dialog closes.
   useEffect(() => {
-    if (!file) return setPreview(undefined)
-    const url = URL.createObjectURL(file)
-    setPreview(url)
-    return () => URL.revokeObjectURL(url)
-  }, [file])
+    return () => {
+      if (preview) URL.revokeObjectURL(preview)
+    }
+  }, [preview])
 
   async function submit(e: FormEvent) {
     e.preventDefault()
@@ -120,7 +119,9 @@ function ImageForm({
           type="file"
           accept={acceptFor('photo')}
           onChange={(e) => {
-            setFile(e.target.files?.[0])
+            const chosen = e.target.files?.[0]
+            setFile(chosen)
+            setPreview(chosen ? URL.createObjectURL(chosen) : undefined)
             setError(undefined)
           }}
           required

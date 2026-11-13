@@ -6,9 +6,6 @@ import { useT } from '../i18n/useT.tsx'
 /** The selected types. An empty list means "All". */
 export type KindFilterValue = UploadKind[]
 
-export const filterByKinds = <T extends { kind: UploadKind }>(items: T[], kinds: KindFilterValue): T[] =>
-  kinds.length ? items.filter((i) => kinds.includes(i.kind)) : items
-
 const filters: { value: UploadKind; label: MessageKey }[] = [
   { value: 'photo', label: 'filter.photos' },
   { value: 'audio', label: 'filter.audio' },

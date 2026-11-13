@@ -63,8 +63,10 @@ const withProfileImage = (core: Core, which: api.ProfileImage, url: string | und
   ...core,
   users: core.users.map((u) => {
     if (u.id !== core.meId) return u
-    const { [imageField[which]]: _old, ...rest } = u
-    return url ? { ...rest, [imageField[which]]: url } : rest
+    const next = { ...u }
+    if (url) next[imageField[which]] = url
+    else delete next[imageField[which]]
+    return next
   }),
 })
 
