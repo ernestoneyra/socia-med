@@ -22,39 +22,30 @@ import {
   type PostErrors,
 } from '../data/postRules.ts'
 import type { Upload, UploadKind } from '../data/types.ts'
+import { m, type MessageKey } from '../i18n/core.ts'
+import { useT } from '../i18n/useT.tsx'
+import { fieldClass } from '../lib/formStyles.ts'
 import { readDuration } from '../lib/media.ts'
+import FieldError from './FieldError.tsx'
 import Status from './Status.tsx'
 
-const kinds: { value: UploadKind; label: string; Icon: typeof PhotoIcon }[] = [
-  { value: 'photo', label: 'Photo', Icon: PhotoIcon },
-  { value: 'audio', label: 'Audio', Icon: MusicalNoteIcon },
-  { value: 'video', label: 'Video', Icon: VideoCameraIcon },
-  { value: 'writing', label: 'Writing', Icon: DocumentTextIcon },
+const kinds: { value: UploadKind; label: MessageKey; Icon: typeof PhotoIcon }[] = [
+  { value: 'photo', label: 'card.kindPhoto', Icon: PhotoIcon },
+  { value: 'audio', label: 'card.kindAudio', Icon: MusicalNoteIcon },
+  { value: 'video', label: 'card.kindVideo', Icon: VideoCameraIcon },
+  { value: 'writing', label: 'card.kindWriting', Icon: DocumentTextIcon },
 ]
 
-const fileHint: Record<'photo' | 'audio' | 'video', string> = {
-  photo: 'JPEG, PNG, WebP or GIF.',
-  audio: 'MP3, M4A, WAV, OGG or WebM audio.',
-  video: 'MP4, WebM or OGG video.',
+const fileTypes: Record<'photo' | 'audio' | 'video', MessageKey> = {
+  photo: 'post.fileTypesPhoto',
+  audio: 'post.fileTypesAudio',
+  video: 'post.fileTypesVideo',
 }
 
-const fieldClass = (invalid: boolean) =>
-  `mt-1 block min-h-11 w-full rounded-xl border bg-paper px-4 py-2 text-base placeholder:text-muted focus-visible:outline-offset-0 ${
-    invalid ? 'border-2 border-accent' : 'border-edge'
-  }`
-
-/** Not just colour: the message has an icon and sits right under the field (SC 1.4.1, 3.3.1). */
-function FieldError({ id, children }: { id: string; children?: string }) {
-  if (!children) return null
-  return (
-    <p id={id} className="mt-1 flex items-start gap-1.5 text-sm font-medium">
-      <ExclamationCircleIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      <span>
-        <span className="sr-only">Error: </span>
-        {children}
-      </span>
-    </p>
-  )
+const fileLabel: Record<'photo' | 'audio' | 'video', MessageKey> = {
+  photo: 'post.photoFile',
+  audio: 'post.audioFile',
+  video: 'post.videoFile',
 }
 
 function PostForm({
@@ -67,6 +58,7 @@ function PostForm({
   onClose: () => void
   onSaved: (post: Upload) => void
 }) {
+  const t = useT()
   const uid = useId()
   const [kind, setKind] = useState<UploadKind>(editing?.kind ?? 'photo')
   const [title, setTitle] = useState(editing?.title ?? '')
@@ -94,25 +86,25 @@ function PostForm({
     // Show problems in the order the fields appear on screen.
     const names = (['title', 'file', 'caption', 'tags'] as const).filter((n) => found[n])
     if (names.length) {
-      setAnnouncement(`${names.length} ${names.length === 1 ? 'problem' : 'problems'} to fix before ${editing ? 'saving' : 'posting'}.`)
+      setAnnouncement(t(editing ? 'count.problemsBeforeSaving' : 'count.problemsBeforePosting', { n: names.length }))
       // Take the person to the first problem (SC 3.3.1).
       formRef.current?.querySelector<HTMLElement>(`[name="${names[0]}"]`)?.focus()
       return
     }
     setSaving(true)
     if (editing) {
-      setAnnouncement('Saving…')
+      setAnnouncement(t('post.saving'))
       const ok = await updatePost(editing.id, post)
       setSaving(false)
       if (ok) {
         onSaved({ ...editing, title: post.title.trim(), caption: post.caption.trim(), tags: post.tags })
       } else {
-        setServerError('Your changes could not be saved. Nothing was changed. Check your connection and try again.')
-        setAnnouncement('Your changes could not be saved.')
+        setServerError(t('post.saveFailed'))
+        setAnnouncement(t('post.saveFailedShort'))
       }
       return
     }
-    setAnnouncement('Posting…')
+    setAnnouncement(t('post.posting'))
     // The length of audio and video comes from the file, not from the person.
     const duration = file && (kind === 'audio' || kind === 'video') ? await readDuration(file, kind) : undefined
     const saved = await createPost({ ...post, ...(duration ? { duration } : {}) }, file)
@@ -120,8 +112,8 @@ function PostForm({
     if (saved) {
       onSaved(saved)
     } else {
-      setServerError('Your post could not be saved. Nothing was posted. Check your connection and try again.')
-      setAnnouncement('Your post could not be saved.')
+      setServerError(t('post.postFailed'))
+      setAnnouncement(t('post.postFailedShort'))
     }
   }
 
@@ -133,7 +125,7 @@ function PostForm({
 
       {!editing && (
       <fieldset>
-        <legend className="text-sm font-medium">Type of post</legend>
+        <legend className="text-sm font-medium">{t('post.type')}</legend>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {kinds.map(({ value, label, Icon }) => (
             <label
@@ -156,7 +148,7 @@ function PostForm({
                 className="size-4 shrink-0 accent-accent focus-visible:outline-none"
               />
               <Icon className="size-4 shrink-0" aria-hidden="true" />
-              {label}
+              {t(label)}
             </label>
           ))}
         </div>
@@ -165,7 +157,7 @@ function PostForm({
 
       <div>
         <label htmlFor={id('title')} className="block text-sm font-medium">
-          Title
+          {t('post.title')}
         </label>
         <input
           id={id('title')}
@@ -186,10 +178,10 @@ function PostForm({
       {!editing && hasFile(kind) && (
         <div>
           <label htmlFor={id('file')} className="block text-sm font-medium">
-            {kind === 'photo' ? 'Photo file' : kind === 'audio' ? 'Audio file' : 'Video file'}
+            {t(fileLabel[kind])}
           </label>
           <p id={id('file-hint')} className="text-sm text-muted">
-            {fileHint[kind]} Up to {readableSize(MAX_MEDIA_BYTES)}.
+            {t('post.fileHint', { types: m(fileTypes[kind]), size: readableSize(MAX_MEDIA_BYTES) })}
           </p>
           {/* Keyed by kind so changing the type also empties the picker. */}
           <input
@@ -214,7 +206,8 @@ function PostForm({
 
       <div>
         <label htmlFor={id('caption')} className="block text-sm font-medium">
-          {kind === 'writing' ? 'Excerpt or summary' : 'Caption'} <span className="font-normal text-muted">(optional)</span>
+          {kind === 'writing' ? t('post.excerpt') : t('post.caption')}
+          <span className="font-normal text-muted">{t('common.optional')}</span>
         </label>
         <textarea
           id={id('caption')}
@@ -228,18 +221,19 @@ function PostForm({
           className={fieldClass(!!errors.caption)}
         />
         <p id={id('caption-hint')} className="mt-1 text-sm tabular-nums text-muted">
-          {caption.length} of {MAX_CAPTION} characters used.
+          {t('post.charactersUsed', { used: caption.length, max: MAX_CAPTION })}
         </p>
         <FieldError id={id('caption-error')}>{errors.caption}</FieldError>
       </div>
 
       <div>
         <label htmlFor={id('tags')} className="block text-sm font-medium">
-          Tags <span className="font-normal text-muted">(optional)</span>
+          {t('post.tags')}
+          <span className="font-normal text-muted">{t('common.optional')}</span>
         </label>
         <p id={id('tags-hint')} className="text-sm text-muted">
-          Separate with spaces or commas. Up to {MAX_TAGS} tags.
-          {tagCount > 0 && ` ${tagCount} entered.`}
+          {t('post.tagsHint', { max: MAX_TAGS })}
+          {tagCount > 0 && t('post.tagsEntered', { n: tagCount })}
         </p>
         <input
           id={id('tags')}
@@ -267,14 +261,14 @@ function PostForm({
           onClick={onClose}
           className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-edge px-5 text-sm font-medium hover:bg-surface-2"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
         <button
           type="submit"
           aria-disabled={saving}
           className="fc-border inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-accent px-5 text-sm font-medium text-accent-ink hover:bg-accent-hover aria-disabled:cursor-wait aria-disabled:opacity-70"
         >
-          {saving ? (editing ? 'Saving…' : 'Posting…') : editing ? 'Save changes' : 'Post'}
+          {saving ? (editing ? t('post.saving') : t('post.posting')) : editing ? t('post.save') : t('post.post')}
         </button>
       </div>
     </form>
@@ -297,6 +291,7 @@ export default function CreatePostDialog({
   onClose: () => void
   onSaved: (post: Upload) => void
 }) {
+  const t = useT()
   const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
 
@@ -316,7 +311,7 @@ export default function CreatePostDialog({
     >
       <div className="flex items-start justify-between gap-3 px-5 pb-4 pt-5 sm:px-6 sm:pt-6">
         <h2 id={titleId} className="font-display text-2xl font-semibold">
-          {editing ? 'Edit post' : 'Create post'}
+          {editing ? t('post.editTitle') : t('post.createTitle')}
         </h2>
         <button
           type="button"
@@ -324,7 +319,7 @@ export default function CreatePostDialog({
           className="-mr-2 -mt-1 grid size-11 shrink-0 place-items-center rounded-full hover:bg-surface-2"
         >
           <XMarkIcon className="size-5" aria-hidden="true" />
-          <span className="sr-only">{editing ? 'Close, discard changes' : 'Close, discard this post'}</span>
+          <span className="sr-only">{editing ? t('post.closeEdit') : t('post.closeCreate')}</span>
         </button>
       </div>
       {/* Mounted only while open, so every visit starts with an empty form. */}

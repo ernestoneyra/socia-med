@@ -57,6 +57,39 @@ export async function createPost(post: PostInput, file?: File): Promise<Upload |
   return saved
 }
 
+const imageField = { avatar: 'avatarUrl', background: 'backgroundUrl' } as const
+
+const withProfileImage = (core: Core, which: api.ProfileImage, url: string | undefined): Core => ({
+  ...core,
+  users: core.users.map((u) => {
+    if (u.id !== core.meId) return u
+    const { [imageField[which]]: _old, ...rest } = u
+    return url ? { ...rest, [imageField[which]]: url } : rest
+  }),
+})
+
+/** Uploads a photo and makes it your profile photo or background image. Resolves to true if the server kept it. */
+export async function changeProfileImage(which: api.ProfileImage, file: File): Promise<boolean> {
+  const saved = await persist(async () => {
+    const media = await api.uploadMedia(file)
+    return api.setProfileImage(which, media.url)
+  })
+  if (!saved) return false
+  updateData((core) => withProfileImage(core, which, saved.url))
+  return true
+}
+
+/** Goes back to the generated initials or banner. Resolves to true if the server removed the image. */
+export async function removeProfileImage(which: api.ProfileImage): Promise<boolean> {
+  const done = await persist(async () => {
+    await api.removeProfileImage(which)
+    return true
+  })
+  if (!done) return false
+  updateData((core) => withProfileImage(core, which, undefined))
+  return true
+}
+
 /** Saves new text for one of your own posts. Resolves to true if the server kept it. */
 export async function updatePost(id: string, change: Pick<PostInput, 'title' | 'caption' | 'tags'>): Promise<boolean> {
   const saved = await persist(() =>

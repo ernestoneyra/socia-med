@@ -11,6 +11,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolid } from '@heroicons/react/24/solid'
 import type { Upload, UploadKind } from '../data/types.ts'
+import { m, type MessageKey } from '../i18n/core.ts'
+import { useT } from '../i18n/useT.tsx'
 import { deletePost, setLiked } from '../data/social.ts'
 import { useData } from '../data/store.ts'
 import { ago, count, isoDuration, spokenDuration } from '../lib/format.ts'
@@ -23,14 +25,15 @@ import CreatePostDialog from './CreatePostDialog.tsx'
 import GlossaryText from './GlossaryText.tsx'
 import PostDialog from './PostDialog.tsx'
 
-const kindMeta: Record<UploadKind, { label: string; Icon: typeof PhotoIcon }> = {
-  photo: { label: 'Photo', Icon: PhotoIcon },
-  audio: { label: 'Audio', Icon: MusicalNoteIcon },
-  video: { label: 'Video', Icon: VideoCameraIcon },
-  writing: { label: 'Writing', Icon: DocumentTextIcon },
+const kindMeta: Record<UploadKind, { label: MessageKey; Icon: typeof PhotoIcon }> = {
+  photo: { label: 'card.kindPhoto', Icon: PhotoIcon },
+  audio: { label: 'card.kindAudio', Icon: MusicalNoteIcon },
+  video: { label: 'card.kindVideo', Icon: VideoCameraIcon },
+  writing: { label: 'card.kindWriting', Icon: DocumentTextIcon },
 }
 
 export default function UploadCard({ upload }: { upload: Upload }) {
+  const t = useT()
   const { getUser, meId } = useData()
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -41,6 +44,7 @@ export default function UploadCard({ upload }: { upload: Upload }) {
   const own = upload.userId === meId
   const author = getUser(upload.userId)
   const { label, Icon } = kindMeta[upload.kind]
+  const title = upload.title
 
   // Offer "Read more" only when the title or description is actually cut off at this card width.
   useLayoutEffect(() => {
@@ -62,7 +66,7 @@ export default function UploadCard({ upload }: { upload: Upload }) {
         {upload.mediaUrl && upload.kind === 'photo' ? (
           <img
             src={upload.mediaUrl}
-            alt={`Photo: ${upload.title}`}
+            alt={t('card.photoAlt', { title })}
             loading="lazy"
             className="aspect-[4/3] w-full bg-surface-2 object-cover"
           />
@@ -71,7 +75,7 @@ export default function UploadCard({ upload }: { upload: Upload }) {
             src={upload.mediaUrl}
             controls
             preload="metadata"
-            aria-label={`Video: ${upload.title}`}
+            aria-label={t('card.videoLabel', { title })}
             className="aspect-[4/3] w-full bg-black object-contain"
           />
         ) : (
@@ -79,24 +83,24 @@ export default function UploadCard({ upload }: { upload: Upload }) {
             seed={upload.seed}
             hue={author.hue}
             kind={upload.kind}
-            label={`Generated ${label.toLowerCase()} artwork for “${upload.title}”`}
+            label={t('card.artwork', { kind: m(`kind.${upload.kind}`), title })}
             className="aspect-[4/3]"
           />
         )}
         {/* Near-opaque so the white text stays above 7:1 on any artwork behind it (SC 1.4.6). */}
         <span className="fc-border absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/90 px-3 py-1 text-xs font-medium text-white">
           <Icon className="size-4" aria-hidden="true" />
-          {label}
+          {t(label)}
           {upload.duration && (
             <time dateTime={isoDuration(upload.duration)} className="tabular-nums">
               <span aria-hidden="true">· {upload.duration}</span>
-              <span className="sr-only">, {spokenDuration(upload.duration)} long</span>
+              <span className="sr-only">{t('card.durationSpoken', { duration: spokenDuration(upload.duration) })}</span>
             </time>
           )}
         </span>
       </div>
       {upload.mediaUrl && upload.kind === 'audio' && (
-        <audio src={upload.mediaUrl} controls preload="none" aria-label={`Audio: ${upload.title}`} className="w-full" />
+        <audio src={upload.mediaUrl} controls preload="none" aria-label={t('card.audioLabel', { title })} className="w-full" />
       )}
 
       <div className="flex flex-1 flex-col gap-3 p-4">
@@ -119,14 +123,15 @@ export default function UploadCard({ upload }: { upload: Upload }) {
                 aria-haspopup="dialog"
                 className="absolute left-0 top-0 inline-flex min-h-11 min-w-11 items-start text-[12px] font-medium text-ink underline underline-offset-2 hover:text-accent"
               >
-                Read more<span className="sr-only"> of “{upload.title}”</span>
+                {t('card.readMore')}
+                <span className="sr-only">{t('card.readMoreOf', { title })}</span>
               </button>
             )}
           </div>
           <PostDialog open={reading} upload={upload} authorName={author.name} onClose={() => setReading(false)} />
         </div>
 
-        <ul aria-label="Tags" className="flex flex-wrap gap-1.5">
+        <ul aria-label={t('card.tags')} className="flex flex-wrap gap-1.5">
           {upload.tags.map((tag) => (
             <li key={tag} className="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-muted">
               #{tag}
@@ -135,7 +140,9 @@ export default function UploadCard({ upload }: { upload: Upload }) {
         </ul>
 
         <p className="text-sm text-muted">
-          Posted <time dateTime={upload.createdAt}>{ago(upload.createdAt)}</time>
+          {t.rich('card.posted', { when: ago(upload.createdAt) }, {
+            time: (text) => <time dateTime={upload.createdAt}>{text}</time>,
+          })}
         </p>
 
         {own && (
@@ -147,7 +154,8 @@ export default function UploadCard({ upload }: { upload: Upload }) {
               className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border border-edge px-4 text-sm font-medium hover:bg-surface-2"
             >
               <PencilSquareIcon className="size-4" aria-hidden="true" />
-              Edit<span className="sr-only"> “{upload.title}”</span>
+              {t('card.edit')}
+              <span className="sr-only">{t('card.ofTitle', { title })}</span>
             </button>
             <button
               type="button"
@@ -156,7 +164,8 @@ export default function UploadCard({ upload }: { upload: Upload }) {
               className="inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full border border-edge px-4 text-sm font-medium hover:bg-surface-2"
             >
               <TrashIcon className="size-4" aria-hidden="true" />
-              Delete<span className="sr-only"> “{upload.title}”</span>
+              {t('card.delete')}
+              <span className="sr-only">{t('card.ofTitle', { title })}</span>
             </button>
             <CreatePostDialog
               open={editing}
@@ -164,7 +173,7 @@ export default function UploadCard({ upload }: { upload: Upload }) {
               onClose={() => setEditing(false)}
               onSaved={() => {
                 setEditing(false)
-                announce(`Your changes to “${upload.title}” were saved.`)
+                announce(t('card.saved', { title }))
               }}
             />
             <ConfirmDeleteDialog
@@ -177,7 +186,7 @@ export default function UploadCard({ upload }: { upload: Upload }) {
                   // The card is gone, so put focus on the page heading rather than on nothing.
                   // Wait a tick: the modal must be gone from the page before focus can move out of it.
                   setTimeout(() => document.querySelector<HTMLElement>('main h1')?.focus({ preventScroll: true }), 0)
-                  announce(`The post “${upload.title}” was deleted.`)
+                  announce(t('card.deleted', { title }))
                 }
                 return ok
               }}
@@ -189,7 +198,7 @@ export default function UploadCard({ upload }: { upload: Upload }) {
           <a href={paths.profile(author.id)} className="flex min-h-11 min-w-0 items-center gap-2.5">
             <Avatar user={author} size="sm" />
             <span className="min-w-0 break-words text-sm font-medium">
-              <span className="sr-only">Profile of </span>
+              <span className="sr-only">{t('card.profileOf')}</span>
               {author.name}
             </span>
           </a>
@@ -206,13 +215,13 @@ export default function UploadCard({ upload }: { upload: Upload }) {
               ) : (
                 <HeartOutline className="size-5" aria-hidden="true" />
               )}
-              <span className="sr-only">Like, </span>
+              <span className="sr-only">{t('card.like')}</span>
               <span className="tabular-nums">{count(upload.likes)}</span>
             </button>
             <span className="inline-flex min-h-11 items-center gap-1 px-3">
               <ChatBubbleOvalLeftIcon className="size-5" aria-hidden="true" />
               <span className="tabular-nums">{count(upload.comments)}</span>
-              <span className="sr-only">comments</span>
+              <span className="sr-only">{t('card.comments')}</span>
             </span>
           </div>
         </div>

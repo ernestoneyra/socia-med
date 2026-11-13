@@ -1,11 +1,13 @@
 import { useSyncExternalStore } from 'react'
-import { fetchSnapshot, type Snapshot } from './api.ts'
+import * as api from './api.ts'
+import type { Snapshot } from './api.ts'
 import type { Upload, User } from './types.ts'
 
 /**
  * The app's data lives in MongoDB. This store holds the latest copy the server sent,
  * re-reads it whenever the tab regains focus (so edits made directly in the database
  * show up), and applies the person's own changes optimistically before the server confirms.
+ * Everything in it belongs to the signed-in account; with nobody signed in there is no data.
  */
 
 /** What the server owns; everything else in `Data` is derived from it. */
@@ -24,6 +26,7 @@ export interface Data extends Core {
 
 type State =
   | { status: 'loading' }
+  | { status: 'signed-out' }
   | { status: 'error'; message: string }
   | { status: 'ready'; data: Data }
 
@@ -90,11 +93,16 @@ export async function loadData(): Promise<void> {
   const requestId = ++requestCounter
   const startedAt = writeVersion
   try {
-    const data = build(await fetchSnapshot())
+    const data = build(await api.fetchSnapshot())
     // Only the newest read counts, and only if nothing was changed locally while it was in flight.
     if (requestId !== requestCounter || pendingWrites > 0 || writeVersion !== startedAt) return
     setState({ status: 'ready', data })
   } catch (err) {
+    // The session ended (signed out in another tab, or it expired): back to the sign-in page.
+    if (err instanceof api.ApiError && err.status === 401) {
+      if (requestId === requestCounter) setState({ status: 'signed-out' })
+      return
+    }
     if (state.status === 'ready') {
       console.warn('Could not refresh the data; showing the last copy.', err)
     } else if (requestId === requestCounter) {
@@ -108,10 +116,32 @@ export function retryLoad() {
   return loadData()
 }
 
+/** Creates an account and signs in to it. Rejects with an `ApiError` the form can show. */
+export async function createAccount(name: string, username: string, password: string): Promise<void> {
+  await api.register(name, username, password)
+  await retryLoad()
+}
+
+/** Rejects with an `ApiError` (401 for a wrong username or password) the form can show. */
+export async function signIn(username: string, password: string): Promise<void> {
+  await api.signIn(username, password)
+  await retryLoad()
+}
+
+/** Ends the session and drops everything that was loaded for this account. */
+export async function signOut(): Promise<void> {
+  await api.signOut()
+  // Whatever was still being read or saved belonged to the account that just left.
+  requestCounter++
+  writeVersion++
+  setState({ status: 'signed-out' })
+}
+
 /** Re-reads the data when the person returns to the tab. Returns a function that stops it. */
 export function startAutoRefresh(): () => void {
   const onVisible = () => {
-    if (document.visibilityState === 'visible') void loadData()
+    // Nobody is signed in, so there is nothing to refresh.
+    if (document.visibilityState === 'visible' && state.status !== 'signed-out') void loadData()
   }
   document.addEventListener('visibilitychange', onVisible)
   window.addEventListener('focus', onVisible)

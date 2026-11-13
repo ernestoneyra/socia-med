@@ -1,4 +1,5 @@
 import { MoonIcon, SunIcon } from '@heroicons/react/20/solid'
+import { useT } from '../i18n/useT.tsx'
 import { useTheme } from '../lib/theme.ts'
 
 /**
@@ -6,6 +7,7 @@ import { useTheme } from '../lib/theme.ts'
  * 44px tall to meet the AAA target size (SC 2.5.5); the track border is >= 3:1 (SC 1.4.11).
  */
 export default function ThemeToggle() {
+  const t = useT()
   const { theme, toggle } = useTheme()
   const dark = theme === 'dark'
 
@@ -14,7 +16,7 @@ export default function ThemeToggle() {
       type="button"
       role="switch"
       aria-checked={dark}
-      aria-label="Dark mode"
+      aria-label={t('theme.dark')}
       onClick={toggle}
       className="relative h-11 w-20 shrink-0 cursor-pointer rounded-full border border-edge bg-surface-2"
     >

@@ -10,6 +10,10 @@ export interface User {
   following: number
   /** 0-360, drives the generated avatar and banner colours. */
   hue: number
+  /** The profile photo, a `/media/...` URL. Without one the avatar shows generated initials. */
+  avatarUrl?: string
+  /** The image behind the profile, a `/media/...` URL. Without one the generated banner shows. */
+  backgroundUrl?: string
   /** Whether the signed-in user follows this person. Always false for themselves. */
   followedByMe: boolean
 }

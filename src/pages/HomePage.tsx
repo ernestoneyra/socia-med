@@ -6,10 +6,11 @@ import SortFilter from '../components/SortFilter.tsx'
 import Status from '../components/Status.tsx'
 import UploadCard from '../components/UploadCard.tsx'
 import { useData } from '../data/store.ts'
-import { plural } from '../lib/format.ts'
+import { useT } from '../i18n/useT.tsx'
 import { sortByDate, type SortValue } from '../lib/sort.ts'
 
 export default function HomePage() {
+  const t = useT()
   const { me, uploads } = useData()
   const [kinds, setKinds] = useState<KindFilterValue>([])
   const [sort, setSort] = useState<SortValue>('latest')
@@ -25,17 +26,17 @@ export default function HomePage() {
   return (
     <>
       <PageHeading
-        title={`Hello, ${me.name.split(' ')[0]}`}
-        subtitle="Fresh work from the people you follow: photographs, recordings, rides and essays, newest first."
+        title={t('home.hello', { name: me.name.split(' ')[0] })}
+        subtitle={t('home.subtitle')}
       />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <KindFilter value={kinds} onChange={setKinds} className="" />
         <SortFilter value={sort} onChange={setSort} />
       </div>
-      <Status>{plural(visible.length, 'upload')} shown.</Status>
+      <Status>{t('count.uploadsShown', { n: visible.length })}</Status>
 
-      <h2 className="sr-only">Latest uploads</h2>
+      <h2 className="sr-only">{t('home.latest')}</h2>
       {visible.length ? (
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((upload) => (
@@ -45,7 +46,7 @@ export default function HomePage() {
       ) : (
         <div className="flex flex-col items-center gap-4 px-6 py-16 text-center text-muted">
           <ShrugIcon className="size-24" />
-          <p>Nothing here yet.</p>
+          <p>{t('home.empty')}</p>
         </div>
       )}
     </>

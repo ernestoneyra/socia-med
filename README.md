@@ -6,7 +6,7 @@ A social media app for sharing creative work: photographs, recordings, rides and
 
 ## Try it
 
-**Live demo: <https://socia-med-2oti.onrender.com>** – nothing to install and no account to make. Everyone who opens it acts as the same demo user, Ernesto, so you can click around freely: create, edit and delete posts from your profile, like, follow, and send messages. What you change is visible to everyone else who is trying it at the same time. The sample data is restored every 24 hours, so you can't break anything for long.
+**Live demo: <https://socia-med-2oti.onrender.com>** – nothing to install. Choose *Create an account* (a name, a username and a password; no email), or sign in as a sample user: username `ernesto.neyra`, password `password`. The other sample users sign in the same way, as `firstname.lastname` (for example `maya.okafor`). Then click around freely: create, edit and delete your own posts, like, follow, and send messages. Posts are public, so what you post is visible to everyone else who is trying it. The sample data is restored every 24 hours, and accounts people created are deleted then too, so you can't break anything for long. **Don't use a password you use anywhere else on the demo.**
 
 The demo runs on a free hosting tier that sleeps when idle, so the first load can take up to a minute. Photos, audio and video you attach may disappear before the post does, because the free disk is wiped on every restart and reset.
 
@@ -38,13 +38,14 @@ To run it yourself you need Node.js and a MongoDB database; see [Getting started
 
 - **Home**: a feed of recent uploads from the people you follow, filtered by one or more types.
 - **Explore**: trending tags (pick one to see its posts), the latest posts and suggested people to follow.
-- **Messages**: conversation list and threads, with unread counts.
+- **Messages**: conversation list and threads, with unread counts, and a "New message" search to start a conversation with anyone.
 - **Notifications**: activity feed with an unread badge.
 - **Uploads**: your own uploads from the header tab, or those of any user from their profile.
 - **Profiles**: bio, interests, follower count and uploads.
 - **Posts**: create photo, audio, video and writing posts from your profile, and edit or delete your own.
 - **Likes, follows and messages** are saved to the database.
 - **Light and dark theme**, with a toggle in the header.
+- **Languages**: English, Swedish, Japanese and Traditional Chinese (Taiwan), chosen in the account menu. Texts are in `src/i18n/`; add a language by adding a dictionary there and listing it in `LOCALES`.
 - **Help and accessibility**: an accessibility statement, keyboard help and a glossary.
 
 ## Accessibility
@@ -137,7 +138,10 @@ The server exits on startup if `MONGODB_URI` is missing or the database is unrea
 | Method | Path                                      | Purpose                                                          |
 | ------ | ----------------------------------------- | ---------------------------------------------------------------- |
 | GET    | `/api/health`                             | `{ "status": "ok", "db": "connected" \| "disconnected" }`         |
-| GET    | `/api/me`                                 | The signed-in user's id (no login yet, so always the seed user)  |
+| POST   | `/api/auth/register`                      | Create an account and sign in: `{ name, username, password }`. 409 if the username is taken |
+| POST   | `/api/auth/login`                         | Sign in: `{ username, password }`. Returns `{ id }` and sets the session cookie |
+| POST   | `/api/auth/logout`                        | Sign out (ends the session on the server and clears the cookie)  |
+| GET    | `/api/me`                                 | The signed-in user's id. **Everything below needs a session; without one the answer is 401** |
 | GET    | `/api/users`                              | All users                                                        |
 | GET    | `/api/uploads`                            | All uploads, newest first                                        |
 | POST   | `/api/media`                              | Attach a file: the raw body, with its type as `Content-Type`. Returns `{ url }` |
@@ -145,8 +149,8 @@ The server exits on startup if `MONGODB_URI` is missing or the database is unrea
 | DELETE | `/api/uploads/:id`                        | Delete your own post, its file, its likes and its notifications  |
 | POST   | `/api/uploads`                            | Create a post: `{ id, seed, kind, title, caption, tags, duration?, mediaUrl? }` |
 | GET    | `/api/inbox`                              | `{ conversations, notifications }`                               |
-| POST   | `/api/conversations/:userId/messages`     | Send a message: body `{ id, text }`                              |
-| DELETE | `/api/conversations/:userId/messages/:id` | Unsend one of your own messages                                  |
+| POST   | `/api/conversations/:userId/messages`     | Send a message: body `{ id, text }`. Starts the conversation if needed and delivers it to that user |
+| DELETE | `/api/conversations/:userId/messages/:id` | Unsend one of your own messages (also from their copy)           |
 | POST   | `/api/conversations/:userId/read`         | Mark a conversation, and its message notifications, as read      |
 | POST   | `/api/notifications/:id/read`             | Mark one notification as read                                    |
 | POST   | `/api/notifications/read-all`             | Mark every notification as read                                  |
@@ -163,9 +167,22 @@ Responses are never cached. Likes and follows are saved in the `likes` and `foll
 
 `npm run seed` upserts every sample document by id, so running it again **overwrites** edits you made to those documents in MongoDB. It also empties `likes` and `follows`, because it resets the counts they are kept in step with.
 
+## Accounts
+
+Everyone has their own account. Sign in with a **username** (case does not matter) and a password, or create an account on the sign-in page. A new account's username is also its handle and its id, so it must not match any existing username, handle or id.
+
+- **Sessions.** Signing in sets a random token in an `httpOnly`, `SameSite=Lax` cookie (`Secure` over HTTPS) that lasts 30 days. The database keeps only the token's SHA-256, in the `sessions` collection, and removes expired ones itself. Signing out deletes the session on the server, so a copied cookie stops working too.
+- **Passwords** are stored only as a salted scrypt hash (`salt:hash`) and are never sent back to the client. A wrong username and a wrong password get the same answer, in about the same time. Passwords are 8 to 128 characters.
+- **Whose is whose.** Posts, likes, follows, conversations and notifications each belong to one account, and the server takes the account from the session, never from the request. You can only edit or delete your own posts and messages, and only read your own inbox. New accounts start with an empty inbox.
+- **Rate limits** per visitor: 20 sign-in attempts per 10 minutes and 10 new accounts per hour.
+- **The sample users** (`npm run seed`) are real accounts. Each signs in as `firstname.lastname` with the password `password`; change that before exposing a database you care about. Re-seeding never resets a password that is already set. The sample conversations and notifications belong to `ernesto.neyra`.
+- **Upgrading a database from before accounts** is automatic on the next start: the existing inbox is assigned to `ernesto` and the old one-conversation-per-contact index is replaced by one per contact *per inbox* (see `server/migrate.ts`).
+- **Messaging.** Each person has their own copy of a conversation. Sending a message creates the conversation if it is the first one, adds the message to both copies, raises the recipient's unread count and gives them a single "sent you a message" notification for a run of unread messages. Unsending removes it from both copies.
+- **Not built yet:** changing or resetting a password, email verification, deleting your account, and blocking or muting people (anyone can message anyone).
+
 ## Deploying a live demo (Render)
 
-[render.yaml](render.yaml) describes one Render web service that runs the API and serves the built client, so guests can try everything (create, edit and delete posts, like, follow, message) without an account. Everyone acts as the same demo user and sees the same data.
+[render.yaml](render.yaml) describes one Render web service that runs the API and serves the built client, so guests can try everything (create, edit and delete posts, like, follow, message) after making an account or signing in as a sample user. Posts are shared, but each account has its own inbox, likes and follows.
 
 1. **Make a separate demo database.** In MongoDB Atlas create a new database or cluster just for the live site, and under *Network Access* allow `0.0.0.0/0` (Render's addresses change). Do not reuse the database you develop against: guests can change or delete anything in it.
 2. **Create the service.** In Render choose *New, Blueprint* and pick this repository. When asked, set `MONGODB_URI` to the demo database's connection string.
@@ -174,10 +191,11 @@ Responses are never cached. Likes and follows are saved in the `likes` and `foll
 
 Things to know:
 
-- **Never set `DEMO_RESET_HOURS` anywhere that points at data you want to keep.** Each reset deletes every upload, conversation, notification, like and follow before re-seeding.
+- **Never set `DEMO_RESET_HOURS` anywhere that points at data you want to keep.** Each reset deletes every upload, conversation, notification, like and follow, and every account that is not a sample user (with its sessions), before re-seeding.
 - **Attached files are not permanent.** Render's free disk is wiped on every deploy and restart, and the reset also deletes `server/media/`. A post's file can therefore disappear before the post does.
 - **The free plan sleeps** after about 15 minutes without visits, so the first load can take up to a minute.
-- Writes are rate limited per visitor (300 changes and 20 attached files per 10 minutes) and files are limited to 25 MB.
+- Writes are rate limited per visitor (300 changes and 20 attached files per 10 minutes), sign-ins and new accounts more tightly (see "Accounts"), and files are limited to 25 MB.
+- **Serve it over HTTPS** (Render does). The server trusts one proxy hop (`trust proxy`) to know a request was secure and to rate limit by the visitor's address.
 - `npm start` runs the server without a `.env` file, reading `MONGODB_URI` from the environment. `npm run dev` is still the way to work locally.
 
 ## Project structure
@@ -189,6 +207,7 @@ server/            Express API, Mongoose models and MongoDB connection
 src/
   components/      Header, upload cards, avatars, theme toggle, user menu...
   data/            Types, API client, the data store (loads from the API) and the glossary
+  i18n/            Translations (one file per language), the language store and the `useT` hook
   lib/             Hash router, theme handling, formatting helpers
   pages/           Home, Explore, Messages, Notifications, Uploads, Profile, Help
 ```

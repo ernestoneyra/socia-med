@@ -68,17 +68,19 @@ export function markAllNotificationsRead() {
 /** Returns the new message's id, so the sender can undo it (WCAG 3.3.6: submissions are reversible). */
 export function sendMessage(userId: string, text: string): string {
   const id = crypto.randomUUID()
-  updateData((core) => ({
-    ...core,
-    conversations: core.conversations.map((c) =>
-      c.userId === userId
-        ? {
-            ...c,
-            messages: [...c.messages, { id, from: core.meId, text, sentAt: new Date().toISOString() }],
-          }
-        : c,
-    ),
-  }))
+  updateData((core) => {
+    const message = { id, from: core.meId, text, sentAt: new Date().toISOString() }
+    // The first message to someone starts the conversation.
+    if (!core.conversations.some((c) => c.userId === userId)) {
+      return { ...core, conversations: [{ userId, unread: 0, messages: [message] }, ...core.conversations] }
+    }
+    return {
+      ...core,
+      conversations: core.conversations.map((c) =>
+        c.userId === userId ? { ...c, messages: [...c.messages, message] } : c,
+      ),
+    }
+  })
   void persist(() => api.sendMessage(userId, id, text)).then((saved) => {
     if (!saved) return
     // The server's clock is the one that counts.

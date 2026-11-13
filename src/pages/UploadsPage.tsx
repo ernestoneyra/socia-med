@@ -6,10 +6,11 @@ import ShrugIcon from '../components/ShrugIcon.tsx'
 import Status from '../components/Status.tsx'
 import UploadCard from '../components/UploadCard.tsx'
 import { useData } from '../data/store.ts'
-import { plural } from '../lib/format.ts'
+import { useT } from '../i18n/useT.tsx'
 import { paths } from '../lib/router.ts'
 
 export default function UploadsPage({ userId }: { userId?: string }) {
+  const t = useT()
   const { uploads, findUser } = useData()
   const [kinds, setKinds] = useState<KindFilterValue>([])
   const owner = userId ? findUser(userId) : undefined
@@ -22,21 +23,21 @@ export default function UploadsPage({ userId }: { userId?: string }) {
       {owner && (
         <Breadcrumbs
           items={[
-            { label: 'Home', href: paths.home },
-            { label: 'Uploads', href: paths.uploads() },
+            { label: t('nav.home'), href: paths.home },
+            { label: t('nav.uploads'), href: paths.uploads() },
             { label: owner.name },
           ]}
         />
       )}
       <PageHeading
-        title={owner ? `Uploads by ${owner.name}` : 'Uploads'}
-        subtitle={`${plural(scoped.length, 'upload')} in total.`}
+        title={owner ? t('title.uploadsBy', { name: owner.name }) : t('nav.uploads')}
+        subtitle={t('count.uploadsTotal', { n: scoped.length })}
       />
 
       <KindFilter value={kinds} onChange={setKinds} />
-      <Status>{plural(visible.length, 'upload')} shown.</Status>
+      <Status>{t('count.uploadsShown', { n: visible.length })}</Status>
 
-      <h2 className="sr-only">Upload list</h2>
+      <h2 className="sr-only">{t('uploads.list')}</h2>
       {visible.length ? (
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((upload) => (
@@ -46,7 +47,7 @@ export default function UploadsPage({ userId }: { userId?: string }) {
       ) : (
         <div className="flex flex-col items-center gap-4 px-6 py-16 text-center text-muted">
           <ShrugIcon className="size-24" />
-          <p>Nothing here yet.</p>
+          <p>{t('home.empty')}</p>
         </div>
       )}
     </>

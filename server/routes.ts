@@ -1,9 +1,12 @@
-import { access } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import { access, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import express, { Router } from 'express'
 import type { Conversation, Message, Notification, Upload, User } from '../src/data/types.ts'
 import {
   ALL_MEDIA_TYPES,
+  MAX_AVATAR_BYTES,
+  MAX_AVATAR_LABEL,
   MAX_MEDIA_BYTES,
   MEDIA_TYPES,
   hasFile,
@@ -11,7 +14,8 @@ import {
   validatePost,
   type PostInput,
 } from '../src/data/postRules.ts'
-import { ME_ID } from './config.ts'
+import { translateMsg } from '../src/i18n/core.ts'
+import { authRouter, currentUserId, requireAuth } from './auth.ts'
 import { MEDIA_DIR, MEDIA_URL_PATTERN, deleteMedia, saveMedia } from './media.ts'
 import { rateLimit } from './rateLimit.ts'
 import {
@@ -42,14 +46,25 @@ const anyWrite = rateLimit({ max: 300, windowMs: 10 * 60_000, message: 'Too many
 const fileWrite = rateLimit({ max: 20, windowMs: 10 * 60_000, message: 'Too many files attached in a short time. Wait a few minutes and try again.' })
 api.use((req, res, next) => (req.method === 'GET' ? next() : anyWrite(req, res, next)))
 
-api.get('/me', (_req, res) => {
-  res.json({ id: ME_ID })
+// Register, sign in and sign out are open to everyone; everything after this line needs an account.
+api.use('/auth', authRouter)
+api.use(requireAuth)
+
+api.get('/me', async (_req, res) => {
+  const me = currentUserId(res)
+  // A session whose account has since been removed is no session at all.
+  if (!(await UserModel.exists({ _id: me }))) {
+    res.status(401).json({ error: 'Sign in to continue.' })
+    return
+  }
+  res.json({ id: me })
 })
 
 api.get('/users', async (_req, res) => {
+  const me = currentUserId(res)
   const [docs, follows] = await Promise.all([
     UserModel.find().lean(),
-    FollowModel.find({ followerId: ME_ID }).lean(),
+    FollowModel.find({ followerId: me }).lean(),
   ])
   const followed = new Set(follows.map((f) => f.followingId))
   const users: User[] = docs.map((u) => ({
@@ -63,15 +78,69 @@ api.get('/users', async (_req, res) => {
     followers: u.followers ?? 0,
     following: u.following ?? 0,
     hue: u.hue ?? 0,
+    ...(u.avatarUrl ? { avatarUrl: u.avatarUrl } : {}),
+    ...(u.backgroundUrl ? { backgroundUrl: u.backgroundUrl } : {}),
     followedByMe: followed.has(u._id),
   }))
   res.json(users)
 })
 
+// The profile photo and the background image are photos sent to /media first; these point the
+// signed-in user's profile at one. Both share a size limit smaller than a post's file.
+for (const [route, field] of [
+  ['avatar', 'avatarUrl'],
+  ['background', 'backgroundUrl'],
+] as const) {
+  api.put(`/me/${route}`, async (req, res) => {
+    const me = currentUserId(res)
+    const { url } = req.body ?? {}
+    const extension = typeof url === 'string' ? MEDIA_URL_PATTERN.exec(url)?.[1] : undefined
+    if (typeof url !== 'string' || !extension || !Object.values(MEDIA_TYPES.photo).includes(extension)) {
+      res.status(400).json({ error: 'Choose a photo.' })
+      return
+    }
+    let size: number
+    try {
+      size = (await stat(join(MEDIA_DIR, url.slice('/media/'.length)))).size
+    } catch {
+      res.status(400).json({ error: 'The photo was not found. Choose it again.' })
+      return
+    }
+    // The upload endpoint allows larger files (for posts), so the profile limit is checked here.
+    if (size > MAX_AVATAR_BYTES) {
+      await deleteMedia(url)
+      res.status(400).json({ error: `That photo is too large. The most you can use is ${MAX_AVATAR_LABEL}.` })
+      return
+    }
+    const user = await UserModel.findById(me).select(field)
+    if (!user) {
+      res.status(401).json({ error: 'Sign in to continue.' })
+      return
+    }
+    const previous = user[field]
+    user[field] = url
+    await user.save()
+    if (previous && previous !== url) await deleteMedia(previous)
+    res.json({ url })
+  })
+
+  api.delete(`/me/${route}`, async (_req, res) => {
+    const user = await UserModel.findById(currentUserId(res)).select(field)
+    const previous = user?.[field]
+    if (user && previous) {
+      user[field] = undefined
+      await user.save()
+      await deleteMedia(previous)
+    }
+    res.status(204).end()
+  })
+}
+
 api.get('/uploads', async (_req, res) => {
+  const me = currentUserId(res)
   const [docs, likes] = await Promise.all([
     UploadModel.find().sort({ createdAt: -1 }).lean(),
-    LikeModel.find({ userId: ME_ID }).lean(),
+    LikeModel.find({ userId: me }).lean(),
   ])
   const liked = new Set(likes.map((l) => l.uploadId))
   const uploads: Upload[] = docs.map((u) => ({
@@ -112,6 +181,7 @@ api.post(
 
 // New posts are always by the signed-in user. The server decides when it was posted.
 api.post('/uploads', async (req, res) => {
+  const me = currentUserId(res)
   const { id, seed, kind, title, caption, tags, duration, mediaUrl } = req.body ?? {}
   if (typeof id !== 'string' || id.length === 0 || id.length > 64) {
     res.status(400).json({ error: 'id must be a string of 1 to 64 characters.' })
@@ -142,7 +212,7 @@ api.post('/uploads', async (req, res) => {
   const errors = validatePost(post)
   const firstError = Object.values(errors)[0]
   if (firstError) {
-    res.status(400).json({ error: firstError })
+    res.status(400).json({ error: translateMsg('en', firstError) })
     return
   }
 
@@ -174,7 +244,7 @@ api.post('/uploads', async (req, res) => {
   }
   const doc = {
     _id: id,
-    userId: ME_ID,
+    userId: me,
     kind,
     title: title.trim(),
     caption: caption.trim(),
@@ -186,7 +256,7 @@ api.post('/uploads', async (req, res) => {
   await UploadModel.create(doc)
   const upload: Upload = {
     id,
-    userId: ME_ID,
+    userId: me,
     kind,
     title: doc.title,
     caption: doc.caption,
@@ -208,7 +278,7 @@ api.patch('/uploads/:id', async (req, res) => {
     res.status(404).json({ error: 'Post not found.' })
     return
   }
-  if (upload.userId !== ME_ID) {
+  if (upload.userId !== currentUserId(res)) {
     res.status(403).json({ error: 'You can only edit your own posts.' })
     return
   }
@@ -225,7 +295,7 @@ api.patch('/uploads/:id', async (req, res) => {
   const errors = validatePost({ kind: upload.kind, title, caption, tags })
   const firstError = Object.values(errors)[0]
   if (firstError) {
-    res.status(400).json({ error: firstError })
+    res.status(400).json({ error: translateMsg('en', firstError) })
     return
   }
   upload.title = title.trim()
@@ -241,7 +311,7 @@ api.delete('/uploads/:id', async (req, res) => {
     res.status(404).json({ error: 'Post not found.' })
     return
   }
-  if (upload.userId !== ME_ID) {
+  if (upload.userId !== currentUserId(res)) {
     res.status(403).json({ error: 'You can only delete your own posts.' })
     return
   }
@@ -255,9 +325,10 @@ api.delete('/uploads/:id', async (req, res) => {
 })
 
 api.get('/inbox', async (_req, res) => {
+  const me = currentUserId(res)
   const [conversationDocs, notificationDocs] = await Promise.all([
-    ConversationModel.find().lean(),
-    NotificationModel.find().sort({ createdAt: -1 }).lean(),
+    ConversationModel.find({ ownerId: me }).lean(),
+    NotificationModel.find({ recipientId: me }).sort({ createdAt: -1 }).lean(),
   ])
 
   const conversations: Conversation[] = conversationDocs
@@ -285,8 +356,29 @@ api.get('/inbox', async (_req, res) => {
 })
 
 const MAX_MESSAGE_LENGTH = 2000
+/** How much of a message the recipient's notification shows. */
+const NOTIFICATION_PREVIEW = 100
+
+// Each person has their own copy of a conversation (see the model). Messaging someone you have not
+// written to before starts one, and every message is delivered into the other person's copy too.
+// `upsert` can race with a second request creating the same conversation; the unique index then
+// rejects one of them, and asking again finds the one that won.
+async function upsertConversation(
+  ownerId: string,
+  userId: string,
+  update: Parameters<typeof ConversationModel.updateOne>[1],
+) {
+  try {
+    await ConversationModel.updateOne({ ownerId, userId }, update, { upsert: true })
+  } catch (err) {
+    if (!isDuplicateKey(err)) throw err
+    await ConversationModel.updateOne({ ownerId, userId }, update, { upsert: true })
+  }
+}
 
 api.post('/conversations/:userId/messages', async (req, res) => {
+  const me = currentUserId(res)
+  const other = req.params.userId
   const { id, text } = req.body ?? {}
   if (typeof id !== 'string' || id.length === 0 || id.length > 64) {
     res.status(400).json({ error: 'id must be a string of 1 to 64 characters.' })
@@ -296,40 +388,84 @@ api.post('/conversations/:userId/messages', async (req, res) => {
     res.status(400).json({ error: `text must be 1 to ${MAX_MESSAGE_LENGTH} characters.` })
     return
   }
+  if (other === me) {
+    res.status(400).json({ error: 'You cannot message yourself.' })
+    return
+  }
+  if (!(await UserModel.exists({ _id: other }))) {
+    res.status(404).json({ error: 'User not found.' })
+    return
+  }
 
+  const body = text.trim()
   const sentAt = new Date()
+  const entry = { _id: id, from: me, text: body, sentAt }
+  await Promise.all([
+    upsertConversation(me, other, { $push: { messages: entry } }),
+    upsertConversation(other, me, { $push: { messages: entry }, $inc: { unread: 1 } }),
+  ])
+
+  // One notification for a run of unread messages from the same person, not one per message.
+  const preview = body.length > NOTIFICATION_PREVIEW ? `${body.slice(0, NOTIFICATION_PREVIEW - 1)}…` : body
+  const bumped = await NotificationModel.updateOne(
+    { recipientId: other, type: 'message', actorId: me, read: false },
+    { $set: { text: preview, createdAt: sentAt } },
+  )
+  if (bumped.matchedCount === 0) {
+    await NotificationModel.create({
+      _id: randomUUID(),
+      recipientId: other,
+      type: 'message',
+      actorId: me,
+      text: preview,
+      createdAt: sentAt,
+      read: false,
+    })
+  }
+
+  const message: Message = { id, from: me, text: body, sentAt: toIso(sentAt) }
+  res.status(201).json(message)
+})
+
+// Only your own messages can be taken back, and taking one back removes it from the other person's copy too.
+api.delete('/conversations/:userId/messages/:messageId', async (req, res) => {
+  const me = currentUserId(res)
+  const { userId: other, messageId } = req.params
   const result = await ConversationModel.updateOne(
-    { userId: req.params.userId },
-    { $push: { messages: { _id: id, from: ME_ID, text: text.trim(), sentAt } } },
+    { ownerId: me, userId: other },
+    { $pull: { messages: { _id: messageId, from: me } } },
   )
   if (result.matchedCount === 0) {
     res.status(404).json({ error: 'Conversation not found.' })
     return
   }
-  const message: Message = { id, from: ME_ID, text: text.trim(), sentAt: toIso(sentAt) }
-  res.status(201).json(message)
-})
 
-// Only your own messages can be taken back.
-api.delete('/conversations/:userId/messages/:messageId', async (req, res) => {
-  const result = await ConversationModel.updateOne(
-    { userId: req.params.userId },
-    { $pull: { messages: { _id: req.params.messageId, from: ME_ID } } },
-  )
-  if (result.matchedCount === 0) {
-    res.status(404).json({ error: 'Conversation not found.' })
-    return
+  const theirs = await ConversationModel.findOne({ ownerId: other, userId: me }).lean()
+  const at = theirs?.messages.findIndex((m) => m._id === messageId && m.from === me) ?? -1
+  if (theirs && at >= 0) {
+    // The newest `unread` messages are the ones they have not opened yet.
+    const wasUnread = theirs.messages.length - at <= (theirs.unread ?? 0)
+    const unread = wasUnread ? theirs.unread - 1 : (theirs.unread ?? 0)
+    await ConversationModel.updateOne(
+      { ownerId: other, userId: me },
+      { $pull: { messages: { _id: messageId, from: me } }, $set: { unread } },
+    )
+    // Nothing left unread, so the notification that pointed at it has nothing to point at.
+    if (wasUnread && unread === 0) {
+      await NotificationModel.deleteMany({ recipientId: other, type: 'message', actorId: me, read: false })
+    }
   }
   res.status(204).end()
 })
 
 // Opening a conversation reads it, and the "new message" notifications that pointed at it.
 api.post('/conversations/:userId/read', async (req, res) => {
+  const me = currentUserId(res)
   const { userId } = req.params
   await Promise.all([
-    ConversationModel.updateOne({ userId }, { $set: { unread: 0 } }),
+    ConversationModel.updateOne({ ownerId: me, userId }, { $set: { unread: 0 } }),
     NotificationModel.updateMany(
-      { type: 'message', actorId: userId, read: false },
+      { recipientId: me, type: 'message', actorId: userId, read: false },
       { $set: { read: true } },
     ),
   ])
@@ -337,12 +473,15 @@ api.post('/conversations/:userId/read', async (req, res) => {
 })
 
 api.post('/notifications/read-all', async (_req, res) => {
-  await NotificationModel.updateMany({ read: false }, { $set: { read: true } })
+  await NotificationModel.updateMany({ recipientId: currentUserId(res), read: false }, { $set: { read: true } })
   res.status(204).end()
 })
 
 api.post('/notifications/:id/read', async (req, res) => {
-  const result = await NotificationModel.updateOne({ _id: req.params.id }, { $set: { read: true } })
+  const result = await NotificationModel.updateOne(
+    { _id: req.params.id, recipientId: currentUserId(res) },
+    { $set: { read: true } },
+  )
   if (result.matchedCount === 0) {
     res.status(404).json({ error: 'Notification not found.' })
     return
@@ -358,13 +497,14 @@ api.post('/notifications/:id/read', async (req, res) => {
 const isDuplicateKey = (err: unknown) => (err as { code?: number } | null)?.code === 11000
 
 api.put('/uploads/:id/like', async (req, res) => {
+  const me = currentUserId(res)
   const { id } = req.params
   if (!(await UploadModel.exists({ _id: id }))) {
     res.status(404).json({ error: 'Upload not found.' })
     return
   }
   try {
-    await LikeModel.create({ userId: ME_ID, uploadId: id })
+    await LikeModel.create({ userId: me, uploadId: id })
     await UploadModel.updateOne({ _id: id }, { $inc: { likes: 1 } })
   } catch (err) {
     // Already liked (including a second request racing the first): nothing to add.
@@ -375,12 +515,13 @@ api.put('/uploads/:id/like', async (req, res) => {
 })
 
 api.delete('/uploads/:id/like', async (req, res) => {
+  const me = currentUserId(res)
   const { id } = req.params
   if (!(await UploadModel.exists({ _id: id }))) {
     res.status(404).json({ error: 'Upload not found.' })
     return
   }
-  const result = await LikeModel.deleteOne({ userId: ME_ID, uploadId: id })
+  const result = await LikeModel.deleteOne({ userId: me, uploadId: id })
   if (result.deletedCount > 0) await UploadModel.updateOne({ _id: id }, { $inc: { likes: -1 } })
   const upload = await UploadModel.findById(id).select('likes').lean()
   res.json({ liked: false, likes: Math.max(0, upload?.likes ?? 0) })
@@ -392,8 +533,9 @@ async function followResponse(userId: string, following: boolean) {
 }
 
 api.put('/users/:id/follow', async (req, res) => {
+  const me = currentUserId(res)
   const { id } = req.params
-  if (id === ME_ID) {
+  if (id === me) {
     res.status(400).json({ error: 'You cannot follow yourself.' })
     return
   }
@@ -402,10 +544,10 @@ api.put('/users/:id/follow', async (req, res) => {
     return
   }
   try {
-    await FollowModel.create({ followerId: ME_ID, followingId: id })
+    await FollowModel.create({ followerId: me, followingId: id })
     await Promise.all([
       UserModel.updateOne({ _id: id }, { $inc: { followers: 1 } }),
-      UserModel.updateOne({ _id: ME_ID }, { $inc: { following: 1 } }),
+      UserModel.updateOne({ _id: me }, { $inc: { following: 1 } }),
     ])
   } catch (err) {
     if (!isDuplicateKey(err)) throw err
@@ -414,16 +556,17 @@ api.put('/users/:id/follow', async (req, res) => {
 })
 
 api.delete('/users/:id/follow', async (req, res) => {
+  const me = currentUserId(res)
   const { id } = req.params
   if (!(await UserModel.exists({ _id: id }))) {
     res.status(404).json({ error: 'User not found.' })
     return
   }
-  const result = await FollowModel.deleteOne({ followerId: ME_ID, followingId: id })
+  const result = await FollowModel.deleteOne({ followerId: me, followingId: id })
   if (result.deletedCount > 0) {
     await Promise.all([
       UserModel.updateOne({ _id: id }, { $inc: { followers: -1 } }),
-      UserModel.updateOne({ _id: ME_ID }, { $inc: { following: -1 } }),
+      UserModel.updateOne({ _id: me }, { $inc: { following: -1 } }),
     ])
   }
   res.json(await followResponse(id, false))

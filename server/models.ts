@@ -25,6 +25,10 @@ const userSchema = new Schema(
     followers: { type: Number, default: 0 },
     following: { type: Number, default: 0 },
     hue: { type: Number, min: 0, max: 360, default: 0 },
+    /** Profile photo: a `/media/...` URL. Missing means generated initials. */
+    avatarUrl: { type: String },
+    /** Image behind the profile: a `/media/...` URL. Missing means the generated banner. */
+    backgroundUrl: { type: String },
   },
   { versionKey: false, timestamps: true },
 )
@@ -59,19 +63,25 @@ const messageSchema = new Schema(
   { versionKey: false },
 )
 
-// One conversation per other participant, as seen by the signed-in user.
+// One conversation per other participant, as seen by the user who owns the inbox.
 const conversationSchema = new Schema(
   {
-    userId: { type: String, ref: 'User', required: true, unique: true },
+    /** Whose inbox this is. Everyone has their own. */
+    ownerId: { type: String, ref: 'User', required: true },
+    /** The other person in the conversation. */
+    userId: { type: String, ref: 'User', required: true },
     unread: { type: Number, default: 0 },
     messages: { type: [messageSchema], default: [] },
   },
   { versionKey: false, timestamps: true },
 )
+conversationSchema.index({ ownerId: 1, userId: 1 }, { unique: true })
 
 const notificationSchema = new Schema(
   {
     _id: { type: String, required: true },
+    /** Who receives it. */
+    recipientId: { type: String, ref: 'User', required: true, index: true },
     type: { type: String, enum: ['like', 'comment', 'follow', 'message', 'upload'], required: true },
     actorId: { type: String, ref: 'User', required: true },
     uploadId: { type: String, ref: 'Upload' },
@@ -104,7 +114,21 @@ const followSchema = new Schema(
 )
 followSchema.index({ followerId: 1, followingId: 1 }, { unique: true })
 
+// A signed-in browser holds a random token in a cookie. Only its SHA-256 is stored here (as the
+// `_id`), so a copy of the database cannot be used to sign in as anyone. MongoDB deletes the
+// document itself once `expiresAt` has passed.
+const sessionSchema = new Schema(
+  {
+    _id: { type: String, required: true },
+    userId: { type: String, ref: 'User', required: true, index: true },
+    expiresAt: { type: Date, required: true },
+  },
+  { versionKey: false, timestamps: { createdAt: true, updatedAt: false } },
+)
+sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+
 export const UserModel = mongoose.model('User', userSchema)
+export const SessionModel = mongoose.model('Session', sessionSchema)
 export const UploadModel = mongoose.model('Upload', uploadSchema)
 export const ConversationModel = mongoose.model('Conversation', conversationSchema)
 export const NotificationModel = mongoose.model('Notification', notificationSchema)

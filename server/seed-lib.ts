@@ -9,12 +9,13 @@ import {
 import { conversations, notifications } from './seed-data/messages.ts'
 import { uploads } from './seed-data/uploads.ts'
 import { users } from './seed-data/users.ts'
+import { ME_ID } from './config.ts'
 import { hashPassword } from './password.ts'
 
 // Inserts the sample data from server/seed-data/ into MongoDB. Safe to re-run: every
 // document is upserted by its id, so nothing is duplicated.
 
-// Every seeded user logs in with this password (stored hashed).
+// Every seeded user signs in with this password (stored hashed), until their account is changed by hand.
 const DEFAULT_PASSWORD = 'password'
 
 /** "Tomás Lindqvist" -> "tomas.lindqvist" */
@@ -30,17 +31,19 @@ function toUsername(name: string): string {
 
 /** Writes the sample data into the connected database. Does not connect or disconnect. */
 export async function seedDatabase() {
+  const hashes = await Promise.all(users.map(() => hashPassword(DEFAULT_PASSWORD)))
   const userResult = await UserModel.bulkWrite(
-    users.map(({ id, ...u }) => ({
+    users.map(({ id, ...u }, i) => ({
       updateOne: {
         filter: { _id: id },
         update: {
           $set: {
             ...u,
             username: toUsername(u.name),
-            passwordHash: hashPassword(DEFAULT_PASSWORD),
             joined: new Date(u.joined),
           },
+          // Only for a new user: re-seeding must never reset a password that is already set.
+          $setOnInsert: { passwordHash: hashes[i] },
         },
         upsert: true,
       },
@@ -60,7 +63,8 @@ export async function seedDatabase() {
   const conversationResult = await ConversationModel.bulkWrite(
     conversations.map((c) => ({
       updateOne: {
-        filter: { userId: c.userId },
+        // The sample inbox is the sample user's. Other accounts start with an empty one.
+        filter: { ownerId: ME_ID, userId: c.userId },
         update: {
           $set: {
             unread: c.unread,
@@ -80,7 +84,7 @@ export async function seedDatabase() {
     notifications.map(({ id, ...n }) => ({
       updateOne: {
         filter: { _id: id },
-        update: { $set: { ...n, createdAt: new Date(n.createdAt) } },
+        update: { $set: { ...n, recipientId: ME_ID, createdAt: new Date(n.createdAt) } },
         upsert: true,
       },
     })),

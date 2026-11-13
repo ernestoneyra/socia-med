@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { ArrowLeftIcon, PaperAirplaneIcon } from '@heroicons/react/24/solid'
 import Avatar from '../components/Avatar.tsx'
+import NewConversation from '../components/NewConversation.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import Status from '../components/Status.tsx'
 import { markConversationRead, sendMessage, unsendMessage, useInbox } from '../data/inbox.ts'
 import { useData } from '../data/store.ts'
+import { useT } from '../i18n/useT.tsx'
 import { ago, dayLabel, formatTime } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 
 export default function MessagesPage({ activeId: requestedId }: { activeId?: string }) {
-  const { meId, getUser } = useData()
+  const t = useT()
+  const { meId, getUser, findUser } = useData()
   const { conversations } = useInbox()
   // One draft per conversation, so text typed for one person is never sent to another.
   const [drafts, setDrafts] = useState<Record<string, string>>({})
@@ -20,8 +23,13 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
 
   // On wide screens something is always open; on phones no id means "show the list".
   const activeId = requestedId ?? conversations[0]?.userId ?? ''
-  const active = conversations.find((c) => c.userId === activeId)
+  const existing = conversations.find((c) => c.userId === activeId)
+  // Opening someone you have not written to yet (from New message, or a profile) shows an empty
+  // thread. The conversation itself is created when the first message is sent.
+  const newcomer = !existing && requestedId && requestedId !== meId ? findUser(requestedId) : undefined
+  const active = existing ?? (newcomer ? { userId: newcomer.id, unread: 0, messages: [] } : undefined)
   const other = active ? getUser(active.userId) : undefined
+  const isNewThread = !!requestedId && !!active && active.messages.length === 0
   const draft = drafts[activeId] ?? ''
   const setDraft = (text: string) => setDrafts((d) => ({ ...d, [activeId]: text }))
 
@@ -38,9 +46,14 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
   // Viewing a thread reads it. On phones the list is shown until a thread is chosen,
   // so only the wide layout counts the default conversation as seen.
   useEffect(() => {
-    if (!active) return
-    if (requestedId || window.matchMedia('(min-width: 768px)').matches) markConversationRead(active.userId)
-  }, [active, requestedId])
+    if (!existing) return
+    if (requestedId || window.matchMedia('(min-width: 768px)').matches) markConversationRead(existing.userId)
+  }, [existing, requestedId])
+
+  // An empty thread has one thing to do, so the keyboard starts in the message box.
+  useEffect(() => {
+    if (isNewThread) inputRef.current?.focus()
+  }, [isNewThread, activeId])
 
   function send(e: FormEvent) {
     e.preventDefault()
@@ -49,7 +62,7 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
     const id = sendMessage(activeId, text)
     setLastSent({ userId: activeId, id, text })
     setDraft('')
-    setAnnouncement(`Message sent to ${other.name}. You can undo it.`)
+    setAnnouncement(t('messages.sentTo', { name: other.name }))
   }
 
   function undo() {
@@ -57,19 +70,22 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
     unsendMessage(lastSent.userId, lastSent.id)
     setDrafts((d) => ({ ...d, [lastSent.userId]: lastSent.text }))
     setLastSent(null)
-    setAnnouncement('Message unsent. Your text is back in the message box.')
+    setAnnouncement(t('messages.unsent'))
     inputRef.current?.focus()
   }
 
   return (
     <>
-      <PageHeading title="Messages" />
+      <PageHeading title={t('nav.messages')} />
       <Status>{announcement}</Status>
       <div className="grid h-[calc(100svh-14rem)] min-h-[30rem] overflow-hidden rounded-2xl border border-line bg-surface shadow-card md:grid-cols-[20rem_1fr]">
         {/* Conversation list */}
         <div className={`min-h-0 overflow-y-auto border-line md:block md:border-r ${requestedId ? 'hidden' : 'block'}`}>
-          <h2 className="sr-only">Conversations</h2>
-          {conversations.length === 0 && <p className="px-4 py-6 text-muted">No conversations yet.</p>}
+          <NewConversation />
+          <h2 className="sr-only">{t('messages.conversations')}</h2>
+          {conversations.length === 0 && (
+            <p className="px-4 py-6 text-muted">{t('messages.empty')}</p>
+          )}
           <ul>
             {conversations.map((c) => {
               const user = getUser(c.userId)
@@ -86,7 +102,7 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-baseline justify-between gap-x-2">
                         <span className={`break-words ${c.unread ? 'font-semibold' : 'font-medium'}`}>
-                          <span className="sr-only">Conversation with </span>
+                          <span className="sr-only">{t('messages.conversationWith')}</span>
                           {user.name}
                         </span>
                         {last && (
@@ -97,14 +113,14 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
                       </span>
                       {/* A one-line preview; the whole message is in the thread. */}
                       <span className={`mt-0.5 block truncate text-sm ${c.unread ? 'text-ink' : 'text-muted'}`}>
-                        {last?.from === meId && 'You: '}
+                        {last?.from === meId && t('messages.you')}
                         {last?.text}
                       </span>
                     </span>
                     {c.unread > 0 && (
                       <span className="fc-border grid min-w-6 place-items-center rounded-full bg-accent px-1.5 text-xs font-bold text-accent-ink">
                         {c.unread}
-                        <span className="sr-only"> unread {c.unread === 1 ? 'message' : 'messages'}</span>
+                        <span className="sr-only">{t('count.unreadMessages', { n: c.unread })}</span>
                       </span>
                     )}
                   </a>
@@ -124,7 +140,7 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
               <a
                 href={paths.messages()}
                 className="-ml-2 grid size-11 shrink-0 place-items-center rounded-full hover:bg-surface-2 md:hidden"
-                aria-label="Back to conversations"
+                aria-label={t('messages.back')}
               >
                 <ArrowLeftIcon className="size-5" aria-hidden="true" />
               </a>
@@ -135,12 +151,12 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
                   className="inline-flex min-h-11 flex-col justify-center hover:underline"
                 >
                   <span className="font-medium">
-                    <span className="sr-only">Conversation with </span>
+                    <span className="sr-only">{t('messages.conversationWith')}</span>
                     {other.name}
                   </span>
                   <span className="text-sm font-normal text-muted">
                     @{other.handle}
-                    <span className="sr-only">. Opens their profile.</span>
+                    <span className="sr-only">{t('messages.opensProfile')}</span>
                   </span>
                 </a>
               </h2>
@@ -149,11 +165,16 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
             <div
               ref={scrollRef}
               role="region"
-              aria-label={`Message history with ${other.name}`}
+              aria-label={t('messages.history', { name: other.name })}
               // A scrolling area with nothing focusable inside must itself be reachable by keyboard (SC 2.1.1).
               tabIndex={0}
               className="flex-1 space-y-2 overflow-y-auto px-4 py-4"
             >
+              {active.messages.length === 0 && (
+                <p className="py-6 text-center text-muted">
+                  {t('messages.noneYet', { name: other.name.split(' ')[0] })}
+                </p>
+              )}
               {active.messages.map((m, i) => {
                 const mine = m.from === meId
                 const prev = active.messages[i - 1]
@@ -169,7 +190,7 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
                       >
                         {/* Who said it is spelled out, so it does not depend on side or colour (SC 1.3.3, 1.4.1). */}
                         <p className="break-words">
-                          <span className="sr-only">{mine ? 'You said: ' : `${other.name} said: `}</span>
+                          <span className="sr-only">{mine ? t('messages.youSaid') : t('messages.saidPrefix', { name: other.name })}</span>
                           {m.text}
                         </p>
                         <time dateTime={m.sentAt} className={`mt-0.5 block text-xs tabular-nums ${mine ? '' : 'text-muted'}`}>
@@ -185,27 +206,27 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
             <form onSubmit={send} className="border-t border-line p-3">
               {canUndo && (
                 <p className="mb-2 flex flex-wrap items-center gap-x-3 text-sm">
-                  <span>Message sent.</span>
+                  <span>{t('messages.sent')}</span>
                   <button
                     type="button"
                     onClick={undo}
                     className="inline-flex min-h-11 items-center font-medium text-accent underline underline-offset-4 hover:text-accent-hover"
                   >
-                    Undo send
+                    {t('messages.undo')}
                   </button>
                 </p>
               )}
               <div className="flex items-center gap-2">
                 {/* The label repeats the placeholder, so the accessible name contains the visible text (SC 2.5.3). */}
                 <label htmlFor="message-draft" className="sr-only">
-                  Write a message to {other.name}
+                  {t('messages.writeTo', { name: other.name })}
                 </label>
                 <input
                   id="message-draft"
                   ref={inputRef}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  placeholder={`Write a message to ${other.name.split(' ')[0]}`}
+                  placeholder={t('messages.writeTo', { name: other.name.split(' ')[0] })}
                   aria-describedby="message-help"
                   autoComplete="off"
                   className="min-h-11 min-w-0 flex-1 rounded-full border border-edge bg-paper px-4 py-2 text-sm placeholder:text-muted focus-visible:outline-offset-0"
@@ -213,7 +234,7 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
                 <button
                   type="submit"
                   disabled={!draft.trim()}
-                  aria-label="Send message"
+                  aria-label={t('messages.send')}
                   className="fc-border grid size-11 shrink-0 place-items-center rounded-full bg-accent text-accent-ink hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-muted"
                 >
                   <PaperAirplaneIcon className="size-5" aria-hidden="true" />
@@ -221,16 +242,18 @@ export default function MessagesPage({ activeId: requestedId }: { activeId?: str
               </div>
               {/* Context-sensitive help (SC 3.3.5). */}
               <p id="message-help" className="mt-2 px-2 text-sm text-muted">
-                Press Enter or choose Send to send. You can undo the last message you sent.
+                {t('messages.help')}
               </p>
             </form>
           </section>
         ) : (
-          <p className="hidden place-items-center text-muted md:grid">Conversation not found.</p>
+          <p className="hidden place-items-center px-6 text-center text-muted md:grid">
+            {requestedId ? t('messages.notFound') : t('messages.choose')}
+          </p>
         )}
       </div>
       <p className="mt-3 text-sm text-muted">
-        Opening a conversation marks its messages as read.
+        {t('messages.marksRead')}
       </p>
     </>
   )

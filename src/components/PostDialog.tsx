@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from 'react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import type { Upload } from '../data/types.ts'
+import { useT } from '../i18n/useT.tsx'
 import { ago } from '../lib/format.ts'
 import GlossaryText from './GlossaryText.tsx'
 
@@ -20,6 +21,7 @@ export default function PostDialog({
   authorName: string
   onClose: () => void
 }) {
+  const t = useT()
   const ref = useRef<HTMLDialogElement>(null)
   const headingId = useId()
 
@@ -62,12 +64,14 @@ export default function PostDialog({
           className="-mr-2 -mt-1 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full hover:bg-surface-2"
         >
           <XMarkIcon className="size-5" aria-hidden="true" />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">{t('common.close')}</span>
         </button>
       </div>
 
       <p className="mt-1 text-sm text-muted">
-        By {authorName} · Posted <time dateTime={upload.createdAt}>{ago(upload.createdAt)}</time>
+        {t.rich('postDialog.byline', { name: authorName, when: ago(upload.createdAt) }, {
+          time: (text) => <time dateTime={upload.createdAt}>{text}</time>,
+        })}
       </p>
 
       <p className="mt-4 whitespace-pre-line break-words leading-relaxed">
@@ -75,7 +79,7 @@ export default function PostDialog({
       </p>
 
       {upload.tags.length > 0 && (
-        <ul aria-label="Tags" className="mt-4 flex flex-wrap gap-1.5">
+        <ul aria-label={t('card.tags')} className="mt-4 flex flex-wrap gap-1.5">
           {upload.tags.map((tag) => (
             <li key={tag} className="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-muted">
               #{tag}

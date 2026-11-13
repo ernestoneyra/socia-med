@@ -1,3 +1,4 @@
+import { m, type Msg } from '../i18n/core.ts'
 import type { UploadKind } from './types.ts'
 
 /** What makes a new post valid. Shared, so the form and the server agree. */
@@ -38,17 +39,43 @@ export const kindOfMediaType = (type: string): Exclude<UploadKind, 'writing'> | 
 /** The `accept` value for the file picker of this kind of post. */
 export const acceptFor = (kind: Exclude<UploadKind, 'writing'>) => Object.keys(MEDIA_TYPES[kind]).join(',')
 
-export const readableSize = (bytes: number) =>
-  bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} megabytes` : `${Math.max(1, Math.round(bytes / 1024))} kilobytes`
+/** "25.0 megabytes" / "300 kilobytes", as a message so it is written in the reader's language. */
+export const readableSize = (bytes: number): Msg =>
+  bytes >= 1024 * 1024
+    ? m('size.megabytes', { n: (bytes / (1024 * 1024)).toFixed(1) })
+    : m('size.kilobytes', { n: Math.max(1, Math.round(bytes / 1024)) })
+
+/** What the problem file is called in the error message. */
+type FileNoun = Exclude<UploadKind, 'writing'> | 'background'
 
 /** An error message if the file cannot be used for this kind of post. */
-export function validateFile(kind: UploadKind, file: { type: string; size: number } | undefined): string | undefined {
-  if (!hasFile(kind)) return undefined
-  if (!file) return `Choose a ${kind} file to attach.`
-  if (!(file.type in MEDIA_TYPES[kind])) return `That file is not a supported ${kind} file. Choose a different one.`
-  if (file.size === 0) return 'That file is empty. Choose a different one.'
-  if (file.size > MAX_MEDIA_BYTES) return `That file is too large. The most you can attach is ${readableSize(MAX_MEDIA_BYTES)}.`
+function checkFile(noun: FileNoun, file: { type: string; size: number } | undefined, accepted: Record<string, string>): Msg | undefined {
+  const kind = m(`kind.${noun}`)
+  if (!file) return m('rule.fileRequired', { kind })
+  if (!(file.type in accepted)) return m('rule.fileUnsupported', { kind })
+  if (file.size === 0) return m('rule.fileEmpty')
+  if (file.size > MAX_MEDIA_BYTES) return m('rule.fileTooLarge', { size: readableSize(MAX_MEDIA_BYTES) })
   return undefined
+}
+
+export function validateFile(kind: UploadKind, file: { type: string; size: number } | undefined): Msg | undefined {
+  if (!hasFile(kind)) return undefined
+  return checkFile(kind, file, MEDIA_TYPES[kind])
+}
+
+/** A profile photo is held to a smaller limit than a post's file. */
+export const MAX_AVATAR_BYTES = 3 * 1024 * 1024
+export const MAX_AVATAR_LABEL = '3MB'
+
+/** An error message if the file cannot be used as a profile photo or a background image. */
+export function validateAvatar(
+  file: { type: string; size: number } | undefined,
+  noun: 'photo' | 'background' = 'photo',
+): Msg | undefined {
+  if (file && file.size > MAX_AVATAR_BYTES) {
+    return m('rule.imageTooLarge', { kind: m(`kind.${noun}`), size: MAX_AVATAR_LABEL })
+  }
+  return checkFile(noun, file, MEDIA_TYPES.photo)
 }
 
 /** "Street, #Night  light" -> ["street", "night", "light"]. Commas, spaces and a leading # are all fine. */
@@ -69,18 +96,18 @@ export interface PostInput {
   duration?: string
 }
 
-export type PostErrors = Partial<Record<'kind' | 'file' | 'title' | 'caption' | 'tags' | 'duration', string>>
+export type PostErrors = Partial<Record<'kind' | 'file' | 'title' | 'caption' | 'tags' | 'duration', Msg>>
 
 export function validatePost(post: PostInput): PostErrors {
   const errors: PostErrors = {}
-  if (!POST_KINDS.includes(post.kind)) errors.kind = 'Choose what kind of post this is.'
-  if (!post.title.trim()) errors.title = 'Enter a title.'
-  else if (post.title.trim().length > MAX_TITLE) errors.title = `Use ${MAX_TITLE} characters or fewer for the title.`
-  if (post.caption.length > MAX_CAPTION) errors.caption = `Use ${MAX_CAPTION} characters or fewer for the caption.`
-  if (post.tags.length > MAX_TAGS) errors.tags = `Use ${MAX_TAGS} tags or fewer.`
+  if (!POST_KINDS.includes(post.kind)) errors.kind = m('rule.kindRequired')
+  if (!post.title.trim()) errors.title = m('rule.titleRequired')
+  else if (post.title.trim().length > MAX_TITLE) errors.title = m('rule.titleTooLong', { max: MAX_TITLE })
+  if (post.caption.length > MAX_CAPTION) errors.caption = m('rule.captionTooLong', { max: MAX_CAPTION })
+  if (post.tags.length > MAX_TAGS) errors.tags = m('rule.tooManyTags', { max: MAX_TAGS })
   else if (post.tags.some((t) => t.length > MAX_TAG_LENGTH)) {
-    errors.tags = `Keep each tag to ${MAX_TAG_LENGTH} characters or fewer.`
+    errors.tags = m('rule.tagTooLong', { max: MAX_TAG_LENGTH })
   }
-  if (post.duration && !DURATION_PATTERN.test(post.duration)) errors.duration = 'The length is not in a valid format.'
+  if (post.duration && !DURATION_PATTERN.test(post.duration)) errors.duration = m('rule.durationInvalid')
   return errors
 }

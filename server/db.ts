@@ -1,5 +1,6 @@
 import { setServers } from 'node:dns'
 import mongoose from 'mongoose'
+import { migrateToAccounts } from './migrate.ts'
 
 export async function connectDB(): Promise<typeof mongoose> {
   const uri = process.env.MONGODB_URI
@@ -22,5 +23,7 @@ export async function connectDB(): Promise<typeof mongoose> {
 
   const conn = await mongoose.connect(uri)
   console.log(`MongoDB connected: ${conn.connection.host}/${conn.connection.name}`)
+  // Here, so the server and `npm run seed` both find the database in the shape the code expects.
+  await migrateToAccounts()
   return conn
 }

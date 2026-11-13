@@ -1,11 +1,13 @@
 import { useId } from 'react'
 
+import type { MessageKey } from '../i18n/core.ts'
+import { useT } from '../i18n/useT.tsx'
 import type { SortValue } from '../lib/sort.ts'
 
-const options: { value: SortValue; label: string }[] = [
-  { value: 'latest', label: 'Latest' },
-  { value: 'oldest', label: 'Oldest' },
-  { value: 'last10days', label: 'Last 10 days' },
+const options: { value: SortValue; label: MessageKey }[] = [
+  { value: 'latest', label: 'sort.latest' },
+  { value: 'oldest', label: 'sort.oldest' },
+  { value: 'last10days', label: 'sort.last10days' },
 ]
 
 export default function SortFilter({
@@ -15,11 +17,12 @@ export default function SortFilter({
   value: SortValue
   onChange: (value: SortValue) => void
 }) {
+  const t = useT()
   const id = useId()
   return (
     <div className="flex items-center gap-2">
       <label htmlFor={id} className="text-sm font-medium">
-        Show
+        {t('sort.show')}
       </label>
       <select
         id={id}
@@ -29,7 +32,7 @@ export default function SortFilter({
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
-            {o.label}
+            {t(o.label)}
           </option>
         ))}
       </select>
