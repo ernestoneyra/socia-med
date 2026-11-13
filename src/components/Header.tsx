@@ -15,6 +15,8 @@ import {
 } from '@heroicons/react/24/solid'
 import { useData } from '../data/store.ts'
 import { unreadMessageCount,unreadNotificationCount, useInbox } from '../data/inbox.ts'
+import type { MessageKey } from '../i18n/core.ts'
+import { useT } from '../i18n/useT.tsx'
 import { paths, useRoute, type Route } from '../lib/router.ts'
 import ThemeToggle from './ThemeToggle.tsx'
 import UserMenu from './UserMenu.tsx'
@@ -23,24 +25,25 @@ type Icon = ComponentType<SVGProps<SVGSVGElement>>
 
 interface NavEntry {
   route: Route['name']
-  label: string
+  label: MessageKey
   href: string
   Icon: Icon
   ActiveIcon: Icon
 }
 
 const nav: NavEntry[] = [
-  { route: 'home', label: 'Home', href: paths.home, Icon: HomeIcon, ActiveIcon: HomeSolid },
-  { route: 'explore', label: 'Explore', href: paths.explore, Icon: MagnifyingGlassIcon, ActiveIcon: MagnifyingGlassSolid },
-  { route: 'messages', label: 'Messages', href: paths.messages(), Icon: ChatBubbleLeftRightIcon, ActiveIcon: ChatSolid },
-  { route: 'notifications', label: 'Notifications', href: paths.notifications, Icon: BellIcon, ActiveIcon: BellSolid },
+  { route: 'home', label: 'nav.home', href: paths.home, Icon: HomeIcon, ActiveIcon: HomeSolid },
+  { route: 'explore', label: 'nav.explore', href: paths.explore, Icon: MagnifyingGlassIcon, ActiveIcon: MagnifyingGlassSolid },
+  { route: 'messages', label: 'nav.messages', href: paths.messages(), Icon: ChatBubbleLeftRightIcon, ActiveIcon: ChatSolid },
+  { route: 'notifications', label: 'nav.notifications', href: paths.notifications, Icon: BellIcon, ActiveIcon: BellSolid },
   // href is filled in by the Header: this tab shows the signed-in user's uploads only.
-  { route: 'uploads', label: 'Uploads', href: paths.uploads(), Icon: ArrowUpTrayIcon, ActiveIcon: ArrowUpTraySolid },
+  { route: 'uploads', label: 'nav.uploads', href: paths.uploads(), Icon: ArrowUpTrayIcon, ActiveIcon: ArrowUpTraySolid },
 ]
 
 function Logo() {
+  const t = useT()
   return (
-    <a href={paths.home} className="flex min-h-11 items-center gap-2.5" aria-label="socia-med home">
+    <a href={paths.home} className="flex min-h-11 items-center gap-2.5" aria-label={t('site.homeLabel')}>
       <svg viewBox="0 0 32 32" className="size-8 text-accent" aria-hidden="true">
         <circle cx="12" cy="16" r="9" fill="currentColor" />
         <circle cx="21" cy="16" r="9" fill="none" stroke="currentColor" strokeWidth="2.5" />
@@ -53,6 +56,7 @@ function Logo() {
 }
 
 export default function Header() {
+  const t = useT()
   const route = useRoute()
   const inbox = useInbox()
   const { meId } = useData()
@@ -69,7 +73,7 @@ export default function Header() {
         </div>
 
         <nav
-          aria-label="Primary"
+          aria-label={t('nav.primary')}
           className="col-span-2 row-start-2 flex justify-around border-t border-line md:col-span-1 md:col-start-2 md:row-start-1 md:justify-center md:gap-1 md:border-t-0 lg:gap-2"
         >
           {nav.map(({ route: name, label, href: baseHref, Icon, ActiveIcon }) => {
@@ -92,11 +96,11 @@ export default function Header() {
                   {badge ? (
                     <span className="fc-border absolute -right-2.5 -top-2 grid min-w-5 place-items-center rounded-full bg-accent px-1 text-xs font-bold text-accent-ink">
                       {badge}
-                      <span className="sr-only"> unread</span>
+                      <span className="sr-only">{t('common.unread')}</span>
                     </span>
                   ) : null}
                 </span>
-                <span className="sr-only lg:not-sr-only">{label}</span>
+                <span className="sr-only lg:not-sr-only">{t(label)}</span>
                 <span
                   aria-hidden="true"
                   className={`absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-accent transition-transform motion-reduce:transition-none ${

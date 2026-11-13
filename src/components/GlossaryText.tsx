@@ -1,8 +1,10 @@
 import { useId, useMemo, useState } from 'react'
 import { splitGlossary, type GlossaryEntry } from '../data/glossary.ts'
+import { useT } from '../i18n/useT.tsx'
 
 /** One term. A real button, so it works with keyboard, touch and screen readers (unlike a title tooltip). */
 function Term({ entry, children }: { entry: GlossaryEntry; children: string }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const id = useId()
 
@@ -16,7 +18,7 @@ function Term({ entry, children }: { entry: GlossaryEntry; children: string }) {
         className="cursor-help rounded-sm underline decoration-dotted decoration-2 underline-offset-4"
       >
         {children}
-        <span className="sr-only"> (show definition)</span>
+        <span className="sr-only">{t('glossary.showDefinition')}</span>
       </button>
       {open && (
         <span
@@ -24,7 +26,7 @@ function Term({ entry, children }: { entry: GlossaryEntry; children: string }) {
           role="note"
           className="my-1 block rounded-lg border border-edge bg-surface-2 px-3 py-2 text-sm text-ink"
         >
-          <span className="font-semibold">{entry.term}:</span> {entry.definition}
+          <span className="font-semibold">{entry.term}:</span> {t(entry.definition)}
         </span>
       )}
     </>

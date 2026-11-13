@@ -8,12 +8,13 @@ import GlossaryText from '../components/GlossaryText.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import Status from '../components/Status.tsx'
 import { useData } from '../data/store.ts'
-import { count, plural } from '../lib/format.ts'
+import { m } from '../i18n/core.ts'
+import { useT } from '../i18n/useT.tsx'
+import { count } from '../lib/format.ts'
 import { paths } from '../lib/router.ts'
 
-const SEARCH_LABEL = 'Search people, interests and tags'
-
 export default function ExplorePage() {
+  const t = useT()
   const { uploads, otherUsers } = useData()
   const allTags = useMemo(
     () =>
@@ -42,14 +43,14 @@ export default function ExplorePage() {
   return (
     <>
       <PageHeading
-        title="Explore"
-        subtitle="People worth following and what they are making right now."
+        title={t('nav.explore')}
+        subtitle={t('explore.subtitle')}
       />
 
       <form role="search" onSubmit={(e) => e.preventDefault()} className="mb-8">
         {/* The label repeats the placeholder, so the accessible name contains the visible text (SC 2.5.3). */}
         <label htmlFor="explore-search" className="sr-only">
-          {SEARCH_LABEL}
+          {t('explore.searchLabel')}
         </label>
         <div className="relative">
           <MagnifyingGlassIcon
@@ -61,7 +62,7 @@ export default function ExplorePage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={SEARCH_LABEL}
+            placeholder={t('explore.searchLabel')}
             aria-describedby="explore-search-help"
             autoComplete="off"
             className="min-h-11 w-full rounded-full border border-edge bg-surface py-2.5 pl-11 pr-4 text-sm placeholder:text-muted focus-visible:outline-offset-0"
@@ -69,23 +70,27 @@ export default function ExplorePage() {
         </div>
         {/* Context-sensitive help (SC 3.3.5). */}
         <p id="explore-search-help" className="mt-2 px-4 text-sm text-muted">
-          Type a name, an interest or a tag. The lists below update as you type.
+          {t('explore.searchHelp')}
         </p>
       </form>
 
       <Status>
         {activeTag
-          ? `${plural(posts.length, 'post')} tagged #${activeTag} shown.`
+          ? t('explore.postsTaggedShown', { n: posts.length, tag: activeTag })
           : searching
-            ? `${plural(people.length, 'person', 'people')} and ${plural(trending.length, 'tag')} match “${query.trim()}”.`
+            ? t('explore.matches', {
+                people: m('count.people', { n: people.length }),
+                tags: m('count.tags', { n: trending.length }),
+                query: query.trim(),
+              })
             : ''}
       </Status>
 
       <section aria-labelledby="trending" className="mb-10">
         <h2 id="trending" className="mb-3 text-lg font-semibold">
-          {searching ? 'Matching tags' : 'Trending tags'}
+          {searching ? t('explore.matchingTags') : t('explore.trendingTags')}
         </h2>
-        {trending.length === 0 && <p className="text-muted">No tags match “{query.trim()}”.</p>}
+        {trending.length === 0 && <p className="text-muted">{t('explore.noTags', { query: query.trim() })}</p>}
         <ul className="flex flex-wrap gap-2">
           {trending.map(([tag, uses]) => {
             const pressed = tag === activeTag
@@ -103,7 +108,7 @@ export default function ExplorePage() {
                 >
                   {/* A tick as well as a colour change, so the selection is not conveyed by colour alone (SC 1.4.1). */}
                   {pressed && <CheckIcon className="size-4" aria-hidden="true" />}#{tag}
-                  <span className={pressed ? '' : 'text-muted'}>{plural(uses, 'upload')}</span>
+                  <span className={pressed ? '' : 'text-muted'}>{t('count.uploads', { n: uses })}</span>
                 </button>
               </li>
             )
@@ -113,7 +118,7 @@ export default function ExplorePage() {
 
       <section aria-labelledby="posts" className="mb-10">
         <h2 id="posts" className="mb-3 text-lg font-semibold">
-          {activeTag ? `Posts tagged #${activeTag}` : 'Latest posts'}
+          {activeTag ? t('explore.postsTagged', { tag: activeTag }) : t('explore.latestPosts')}
         </h2>
         {posts.length ? (
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -123,16 +128,16 @@ export default function ExplorePage() {
           </div>
         ) : (
           <p className="rounded-2xl border border-dashed border-edge px-6 py-16 text-center text-muted">
-            No posts use #{activeTag}.
+            {t('explore.noPosts', { tag: activeTag ?? '' })}
           </p>
         )}
       </section>
 
       <section aria-labelledby="people">
         <h2 id="people" className="mb-3 text-lg font-semibold">
-          {searching ? 'Matching people' : 'People to follow'}
+          {searching ? t('explore.matchingPeople') : t('explore.peopleToFollow')}
         </h2>
-        {people.length === 0 && <p className="text-muted">No people match “{query.trim()}”.</p>}
+        {people.length === 0 && <p className="text-muted">{t('explore.noPeople', { query: query.trim() })}</p>}
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {people.map((user) => (
             <li
@@ -147,7 +152,7 @@ export default function ExplorePage() {
                       href={paths.profile(user.id)}
                       className="inline-flex min-h-11 items-center underline-offset-4 hover:underline"
                     >
-                      <span className="sr-only">Profile of </span>
+                      <span className="sr-only">{t('card.profileOf')}</span>
                       {user.name}
                     </a>
                   </h3>
@@ -159,7 +164,7 @@ export default function ExplorePage() {
               <p className="mt-4 text-sm leading-relaxed text-muted">
                 <GlossaryText text={user.bio} />
               </p>
-              <ul aria-label="Interests" className="mt-4 flex flex-wrap gap-1.5">
+              <ul aria-label={t('profile.interests')} className="mt-4 flex flex-wrap gap-1.5">
                 {user.interests.map((interest) => (
                   <li key={interest} className="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-muted">
                     {interest}
@@ -168,7 +173,7 @@ export default function ExplorePage() {
               </ul>
               <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-5">
                 <span className="text-sm text-muted">
-                  <span className="font-semibold text-ink">{count(user.followers)}</span> followers
+                  <span className="font-semibold text-ink">{count(user.followers)}</span> {t('menu.followers')}
                 </span>
                 <FollowButton user={user} />
               </div>

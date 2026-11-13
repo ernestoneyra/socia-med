@@ -1,27 +1,42 @@
+import type { ReactNode } from 'react'
 import Breadcrumbs from '../components/Breadcrumbs.tsx'
 import PageHeading from '../components/PageHeading.tsx'
 import { glossary } from '../data/glossary.ts'
+import type { MessageKey } from '../i18n/core.ts'
+import { useT } from '../i18n/useT.tsx'
 import { paths } from '../lib/router.ts'
 
 const issues = 'https://github.com/ernestoneyra/socia-med/issues'
 
-const keys: { keys: string; does: string }[] = [
-  { keys: 'Tab and Shift + Tab', does: 'Move forward and back through links, buttons and fields.' },
-  { keys: 'Enter', does: 'Open a link, press a button, or send a message.' },
-  { keys: 'Space', does: 'Press a button or switch.' },
-  { keys: 'Escape', does: 'Close the account menu and return to its button.' },
+const keys: { keys: MessageKey; does: MessageKey }[] = [
+  { keys: 'help.keyTab', does: 'help.keyTabDoes' },
+  { keys: 'help.keyEnter', does: 'help.keyEnterDoes' },
+  { keys: 'help.keySpace', does: 'help.keySpaceDoes' },
+  { keys: 'help.keyEscape', does: 'help.keyEscapeDoes' },
+]
+
+const lookAndFeel: MessageKey[] = [
+  'help.look1',
+  'help.look2',
+  'help.look3',
+  'help.look4',
+  'help.look5',
+  'help.look6',
+  'help.look7',
 ]
 
 const sections = glossary.filter((g) => g.kind === 'term')
 const abbreviations = glossary.filter((g) => g.kind === 'abbreviation')
 
 function Definitions({ entries }: { entries: typeof glossary }) {
+  const t = useT()
   return (
     <dl className="space-y-4">
       {entries.map((g) => (
         <div key={g.id} className="max-w-prose">
+          {/* The term is the word as it appears in posts, which stay in their own language. */}
           <dt className="font-semibold">{g.term}</dt>
-          <dd className="text-muted">{g.definition}</dd>
+          <dd className="text-muted">{t(g.definition)}</dd>
         </div>
       ))}
     </dl>
@@ -30,94 +45,83 @@ function Definitions({ entries }: { entries: typeof glossary }) {
 
 const h2 = 'mb-3 mt-10 font-display text-2xl font-semibold'
 const firstH2 = 'mb-3 font-display text-2xl font-semibold'
+const linkClass = 'font-medium text-accent underline underline-offset-4 hover:text-accent-hover'
 
 export default function HelpPage() {
+  const t = useT()
+  const bold = (text: string): ReactNode => <strong>{text}</strong>
+
   return (
     <>
-      <Breadcrumbs items={[{ label: 'Home', href: paths.home }, { label: 'Help and accessibility' }]} />
-      <PageHeading
-        title="Help and accessibility"
-        subtitle="How to get around socia-med, how we make it usable for everyone, and what the unusual words mean."
-      />
+      <Breadcrumbs items={[{ label: t('nav.home'), href: paths.home }, { label: t('title.help') }]} />
+      <PageHeading title={t('title.help')} subtitle={t('help.subtitle')} />
 
       <div className="max-w-prose">
-        <h2 className={firstH2}>Our goal</h2>
+        <h2 className={firstH2}>{t('help.goalTitle')}</h2>
         <p>
-          socia-med aims to meet the Web Content Accessibility Guidelines (WCAG) 2.2 at level AAA. Where a rule has no
-          AAA level, we meet the next level down. If something here does not work for you, please{' '}
-          <a href={issues} className="font-medium text-accent underline underline-offset-4 hover:text-accent-hover">
-            tell us on GitHub
-          </a>
-          . Describe the page, what you used and what went wrong.
+          {t.rich('help.goalText', undefined, {
+            a: (text) => (
+              <a href={issues} className={linkClass}>
+                {text}
+              </a>
+            ),
+          })}
         </p>
 
-        <h2 className={h2}>Getting around</h2>
-        <p>
-          The first link on every page is <strong>Skip to main content</strong>. It appears when you press Tab. After you
-          open a page, the page title is read out and you start at the top of the new page.
-        </p>
+        <h2 className={h2}>{t('help.aroundTitle')}</h2>
+        <p>{t.rich('help.aroundText', undefined, { b: bold })}</p>
         <dl className="mt-4 space-y-3">
           {keys.map((k) => (
             <div key={k.keys}>
-              <dt className="font-semibold">{k.keys}</dt>
-              <dd className="text-muted">{k.does}</dd>
+              <dt className="font-semibold">{t(k.keys)}</dt>
+              <dd className="text-muted">{t(k.does)}</dd>
             </div>
           ))}
         </dl>
 
-        <h2 className={h2}>Search and messages</h2>
+        <h2 className={h2}>{t('help.searchTitle')}</h2>
         <p>
-          On <a href={paths.explore} className="font-medium text-accent underline underline-offset-4 hover:text-accent-hover">Explore</a>,
-          type in the search box and the lists change as you type. A short message tells screen readers how many results
-          there are.
+          {t.rich('help.searchText', undefined, {
+            a: (text) => (
+              <a href={paths.explore} className={linkClass}>
+                {text}
+              </a>
+            ),
+          })}
         </p>
-        <p>
-          In Messages, a conversation opens when you choose it, and each conversation keeps its own unsent text. After you
-          send a message, an <strong>Undo send</strong> button stays available until you send another.
-        </p>
+        <p>{t.rich('help.messagesText', undefined, { b: bold })}</p>
 
-        <h2 className={h2}>Look and feel</h2>
+        <h2 className={h2}>{t('help.lookTitle')}</h2>
         <ul className="list-disc space-y-2 pl-6">
-          <li>Text has a contrast ratio of at least 7 to 1 in both the light and the dark theme.</li>
-          <li>Use the Dark mode switch in the header to change theme. It follows your device setting until you choose.</li>
-          <li>Animation stops if your device asks for reduced motion.</li>
-          <li>Everything works at 200 per cent zoom and on a narrow screen, without sideways scrolling.</li>
-          <li>Buttons and links are at least 44 by 44 pixels, except links inside a sentence.</li>
-          <li>Nothing changes or disappears on a timer. You decide when a notification counts as read.</li>
-          <li>Your own browser colours and Windows high contrast mode are respected.</li>
+          {lookAndFeel.map((key) => (
+            <li key={key}>{t(key)}</li>
+          ))}
         </ul>
 
-        <h2 className={h2}>Known limits</h2>
+        <h2 className={h2}>{t('help.languageTitle')}</h2>
+        <p>{t('help.languageText')}</p>
+
+        <h2 className={h2}>{t('help.limitsTitle')}</h2>
         <ul className="list-disc space-y-2 pl-6">
-          <li>
-            Pictures, audio and video in this version are generated stand-ins. When real uploads arrive, each one needs a
-            written description, and audio and video need captions, a transcript, audio description and a sign language
-            version.
-          </li>
-          <li>
-            Text written by other people, such as captions and messages, is not rewritten. We explain the unusual words we
-            know about below.
-          </li>
+          <li>{t('help.limit1')}</li>
+          <li>{t('help.limit2')}</li>
         </ul>
       </div>
 
       <h2 id="glossary" className={h2}>
-        Glossary
+        {t('help.glossaryTitle')}
       </h2>
-      <p className="mb-6 max-w-prose text-muted">
-        In captions and profiles, an underlined word with a dotted line opens its meaning when you select it. Here is the
-        full list.
-      </p>
+      <p className="mb-6 max-w-prose text-muted">{t('help.glossaryIntro')}</p>
       <div className="grid gap-x-12 gap-y-8 md:grid-cols-2">
         <section aria-labelledby="gl-terms">
           <h3 id="gl-terms" className="mb-4 text-lg font-semibold">
-            Words and phrases
+            {t('help.glossaryTerms')}
           </h3>
           <Definitions entries={sections} />
         </section>
         <section aria-labelledby="gl-abbr">
           <h3 id="gl-abbr" className="mb-4 text-lg font-semibold">
-            Abbreviations
+            {t('help.glossaryAbbreviations')}
           </h3>
           <Definitions entries={abbreviations} />
         </section>

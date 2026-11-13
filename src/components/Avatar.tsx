@@ -8,7 +8,7 @@ const sizes = {
 } as const
 
 interface Props {
-  user: Pick<User, 'name' | 'hue'>
+  user: Pick<User, 'name' | 'hue' | 'avatarUrl'>
   size?: keyof typeof sizes
   className?: string
 }
@@ -28,6 +28,15 @@ function initials(name: string): string {
  * Both gradient stops are dark enough for white initials to reach 7:1 at every hue (SC 1.4.6).
  */
 export default function Avatar({ user, size = 'md', className = '' }: Props) {
+  if (user.avatarUrl) {
+    return (
+      <img
+        src={user.avatarUrl}
+        alt=""
+        className={`fc-border shrink-0 rounded-full bg-surface-2 object-cover ${sizes[size]} ${className}`}
+      />
+    )
+  }
   return (
     <span
       aria-hidden="true"

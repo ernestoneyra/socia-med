@@ -1,3 +1,5 @@
+import { useT } from '../i18n/useT.tsx'
+
 const MAIN_ID = 'main-content'
 
 /**
@@ -5,6 +7,7 @@ const MAIN_ID = 'main-content'
  * "#main-content" anchor would be read as a route change; we move focus ourselves instead.
  */
 export default function SkipLink() {
+  const t = useT()
   return (
     <a
       href={`#${MAIN_ID}`}
@@ -16,7 +19,7 @@ export default function SkipLink() {
       }}
       className="sr-only rounded-lg bg-accent px-5 py-3 font-semibold text-accent-ink focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50"
     >
-      Skip to main content
+      {t('skip.toMain')}
     </a>
   )
 }

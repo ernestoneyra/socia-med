@@ -1,42 +1,45 @@
 import { CheckIcon } from '@heroicons/react/20/solid'
 import type { UploadKind } from '../data/types.ts'
+import type { MessageKey } from '../i18n/core.ts'
+import { useT } from '../i18n/useT.tsx'
 
 /** The selected types. An empty list means "All". */
 export type KindFilterValue = UploadKind[]
 
-export const filterByKinds = <T extends { kind: UploadKind }>(items: T[], kinds: KindFilterValue): T[] =>
-  kinds.length ? items.filter((i) => kinds.includes(i.kind)) : items
-
-const filters: { value: UploadKind; label: string }[] = [
-  { value: 'photo', label: 'Photos' },
-  { value: 'audio', label: 'Audio' },
-  { value: 'video', label: 'Video' },
-  { value: 'writing', label: 'Writing' },
+const filters: { value: UploadKind; label: MessageKey }[] = [
+  { value: 'photo', label: 'filter.photos' },
+  { value: 'audio', label: 'filter.audio' },
+  { value: 'video', label: 'filter.video' },
+  { value: 'writing', label: 'filter.writing' },
 ]
 
 export default function KindFilter({
   value,
   onChange,
+  className = 'mb-6',
 }: {
   value: KindFilterValue
   onChange: (value: KindFilterValue) => void
+  /** Spacing around the group; defaults to a bottom margin. */
+  className?: string
 }) {
+  const t = useT()
   const toggle = (kind: UploadKind) =>
     // Deselecting the last type falls back to "All" rather than showing nothing.
     onChange(value.includes(kind) ? value.filter((k) => k !== kind) : [...value, kind])
 
   const buttons = [
-    { key: 'all', label: 'All', pressed: value.length === 0, onClick: () => onChange([]) },
+    { key: 'all', label: t('filter.all'), pressed: value.length === 0, onClick: () => onChange([]) },
     ...filters.map((f) => ({
       key: f.value,
-      label: f.label,
+      label: t(f.label),
       pressed: value.includes(f.value),
       onClick: () => toggle(f.value),
     })),
   ]
 
   return (
-    <div role="group" aria-label="Filter by type" className="mb-6 flex flex-wrap gap-2">
+    <div role="group" aria-label={t('filter.group')} className={`flex flex-wrap gap-2 ${className}`}>
       {buttons.map(({ key, label, pressed, onClick }) => (
         <button
           key={key}

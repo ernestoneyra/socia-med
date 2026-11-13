@@ -1,10 +1,13 @@
+import type { MessageKey } from '../i18n/core.ts'
+
 export interface GlossaryEntry {
   id: string
-  /** Heading shown on the Help page. */
+  /** Heading shown on the Help page. It is the word as it appears in posts, so it is not translated. */
   term: string
   /** Regular-expression sources that find this term in running text (case-insensitive). */
   patterns: string[]
-  definition: string
+  /** The message that explains it, in every language (see src/i18n). */
+  definition: MessageKey
   kind: 'term' | 'abbreviation'
 }
 
@@ -18,163 +21,161 @@ export const glossary: GlossaryEntry[] = [
     id: 'ambient',
     term: 'Ambient',
     patterns: ['ambient'],
-    definition: 'Quiet, atmospheric music or sound that sets a mood instead of demanding attention.',
+    definition: 'glossary.ambient',
     kind: 'term',
   },
   {
     id: 'bikepacking',
     term: 'Bikepacking',
     patterns: ['bikepacking'],
-    definition: 'Travelling by bicycle with camping gear packed onto the frame instead of in panniers.',
+    definition: 'glossary.bikepacking',
     kind: 'term',
   },
   {
     id: 'celadon',
     term: 'Celadon',
     patterns: ['celadon'],
-    definition: 'A pale grey-green glaze used on pottery.',
+    definition: 'glossary.celadon',
     kind: 'term',
   },
   {
     id: 'crema',
     term: 'Crema',
     patterns: ['crema'],
-    definition: 'The light brown foam on top of a freshly made espresso.',
+    definition: 'glossary.crema',
     kind: 'term',
   },
   {
     id: 'darkroom',
     term: 'Darkroom',
     patterns: ['darkroom'],
-    definition: 'A room with controlled light where photographs are developed and printed.',
+    definition: 'glossary.darkroom',
     kind: 'term',
   },
   {
     id: 'field-recording',
     term: 'Field recording',
     patterns: ['field ?recordist', 'field ?recording'],
-    definition: 'Recording sound outside a studio, in real places such as markets, harbours or forests.',
+    definition: 'glossary.fieldRecording',
     kind: 'term',
   },
   {
     id: 'float',
     term: 'Float',
     patterns: ['float'],
-    definition: 'Cash in small notes and coins that a seller keeps ready to give change.',
+    definition: 'glossary.float',
     kind: 'term',
   },
   {
     id: 'glaze',
     term: 'Glaze',
     patterns: ['glazes', 'glaze'],
-    definition: 'A glassy coating that is fired onto pottery to colour it and make it waterproof.',
+    definition: 'glossary.glaze',
     kind: 'term',
   },
   {
     id: 'gravel',
     term: 'Gravel riding',
     patterns: ['gravel'],
-    definition: 'Cycling on unpaved roads and tracks made of loose stone, dirt or sand.',
+    definition: 'glossary.gravel',
     kind: 'term',
   },
   {
     id: 'hydrophone',
     term: 'Hydrophone',
     patterns: ['hydrophones?'],
-    definition: 'A microphone that records sound underwater.',
+    definition: 'glossary.hydrophone',
     kind: 'term',
   },
   {
     id: 'macro',
     term: 'Macro',
     patterns: ['macro'],
-    definition: 'Close-up photography of very small subjects, shown larger than life.',
+    definition: 'glossary.macro',
     kind: 'term',
   },
   {
     id: 'omnis',
     term: 'Omnis',
     patterns: ['omnis'],
-    definition: 'Short for omnidirectional microphones, which pick up sound equally from every direction.',
+    definition: 'glossary.omnis',
     kind: 'term',
   },
   {
     id: 'portra-400',
     term: 'Portra 400',
     patterns: ['portra ?400'],
-    definition: 'A colour film made by Kodak, popular for its soft, natural skin tones. The 400 is its light sensitivity.',
+    definition: 'glossary.portra400',
     kind: 'term',
   },
   {
     id: 'pushed-one-stop',
     term: 'Pushed one stop',
     patterns: ['pushed one stop'],
-    definition:
-      'Shooting film as if it were more sensitive to light than it is, then developing it for longer to make up the difference. One stop means twice the sensitivity.',
+    definition: 'glossary.pushedOneStop',
     kind: 'term',
   },
   {
     id: 'ristretto',
     term: 'Ristretto',
     patterns: ['ristretto'],
-    definition: 'A short, concentrated shot of espresso.',
+    definition: 'glossary.ristretto',
     kind: 'term',
   },
   {
     id: 'risograph',
     term: 'Risograph',
     patterns: ['risograph', 'riso'],
-    definition:
-      'A fast, low-cost printing machine that prints one ink colour at a time. The layered result looks bright and slightly grainy.',
+    definition: 'glossary.risograph',
     kind: 'term',
   },
   {
     id: 'safelight',
     term: 'Safelight',
     patterns: ['safelight'],
-    definition: 'A dim coloured lamp that lets you work with photographic paper without spoiling it.',
+    definition: 'glossary.safelight',
     kind: 'term',
   },
   {
     id: 'thirty-five-mm',
     term: '35mm',
     patterns: ['35 ?mm'],
-    definition: 'The most common size of photographic film. It is 35 millimetres wide.',
+    definition: 'glossary.thirtyFiveMm',
     kind: 'term',
   },
   {
     id: 'zine',
     term: 'Zine',
     patterns: ['zines?'],
-    definition: 'A small, self-published booklet, often made by hand or photocopied.',
+    definition: 'glossary.zine',
     kind: 'term',
   },
   {
     id: 'am',
     term: 'a.m.',
     patterns: ['a\\.m\\.'],
-    definition: 'Before noon. Latin: ante meridiem.',
+    definition: 'glossary.am',
     kind: 'abbreviation',
   },
   {
     id: 'diy',
     term: 'DIY',
     patterns: ['DIY'],
-    definition: 'Do it yourself.',
+    definition: 'glossary.diy',
     kind: 'abbreviation',
   },
   {
     id: 'fl',
     term: 'FL',
     patterns: ['FL'],
-    definition: 'Florida, a state in the United States.',
+    definition: 'glossary.fl',
     kind: 'abbreviation',
   },
   {
     id: 'km',
     term: 'km',
     patterns: ['km'],
-    definition: 'Kilometres. One kilometre is about 0.62 miles.',
+    definition: 'glossary.km',
     kind: 'abbreviation',
   },
 ]

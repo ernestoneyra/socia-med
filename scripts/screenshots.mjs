@@ -19,6 +19,21 @@ const browser = await chromium.launch(
 )
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'en-US', colorScheme: 'light' })
 
+// The app needs someone signed in. This uses the context's own request API, which the route below does not
+// see, so it is the only thing that reaches the server besides reads: it starts a session and changes no data.
+// Defaults to the sample user; set SCREENSHOT_USER / SCREENSHOT_PASSWORD to sign in as someone else.
+const login = await ctx.request.post(`${BASE}/api/auth/login`, {
+  data: {
+    username: process.env.SCREENSHOT_USER ?? 'ernesto.neyra',
+    password: process.env.SCREENSHOT_PASSWORD ?? 'password',
+  },
+})
+if (!login.ok()) {
+  console.error(`Could not sign in (${login.status()}). Is the app running at ${BASE}, and has the sample data been seeded?`)
+  await browser.close()
+  process.exit(1)
+}
+
 // Look, don't touch: the page still updates itself on screen, but the server never hears about it.
 await ctx.route('**/api/**', (route) =>
   route.request().method() === 'GET' || route.request().method() === 'HEAD'

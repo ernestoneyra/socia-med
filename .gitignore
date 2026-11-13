@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .env
+.env.demo
 # Photos, audio and video attached to posts
 server/media
 

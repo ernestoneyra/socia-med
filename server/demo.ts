@@ -5,8 +5,11 @@ import {
   FollowModel,
   LikeModel,
   NotificationModel,
+  SessionModel,
   UploadModel,
+  UserModel,
 } from './models.ts'
+import { users } from './seed-data/users.ts'
 import { seedDatabase } from './seed-lib.ts'
 
 /**
@@ -16,7 +19,12 @@ import { seedDatabase } from './seed-lib.ts'
  */
 
 export async function resetDemo() {
-  await Promise.all([
+  // Accounts guests registered go too, with their sessions. The sample users keep theirs, so
+  // anyone signed in as one of them stays signed in.
+  const sampleIds = users.map((u) => u.id)
+  const [guests] = await Promise.all([
+    UserModel.deleteMany({ _id: { $nin: sampleIds } }),
+    SessionModel.deleteMany({ userId: { $nin: sampleIds } }),
     UploadModel.deleteMany({}),
     ConversationModel.deleteMany({}),
     NotificationModel.deleteMany({}),
@@ -25,7 +33,9 @@ export async function resetDemo() {
   ])
   await seedDatabase()
   const files = await clearMedia()
-  console.log(`Demo reset: sample data restored, ${files} attached files removed.`)
+  console.log(
+    `Demo reset: sample data restored, ${guests.deletedCount} guest accounts and ${files} attached files removed.`,
+  )
 }
 
 const meta = () => mongoose.connection.db!.collection<{ _id: string; at: Date }>('meta')
